@@ -1,0 +1,24 @@
+/* 1. 화면 전체를 사용하기 위한 설정 */
+#app {
+  width: 100%;
+  min-height: 100vh; /* 화면 전체 높이 사용 */
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+  display: block;
+}
+
+/* 2. 기본 여백 제거 및 배경색 설정 */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a; 
+  color: #ffffff;
+}
+
+/* 3. 링크 스타일 초기화 */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: 0.4s;
+}

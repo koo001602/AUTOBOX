@@ -1,0 +1,37 @@
+# AutoBox 데이터베이스 Docker Compose 설정
+# 사용법: docker-compose up -d
+
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: autobox-mysql
+    restart: unless-stopped
+    environment:
+      # 환경 변수 설정 (실제 운영 시 .env 파일로 분리 권장)
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: autobox
+      TZ: Asia/Seoul
+    ports:
+      # 호스트:컨테이너 포트 매핑
+      - "3306:3306"
+    volumes:
+      # 데이터 영속성을 위한 볼륨
+      - autobox-mysql-data:/var/lib/mysql
+      # 초기화 SQL 스크립트 (컨테이너 최초 실행 시 자동 실행)
+      - ./database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command:
+      # MySQL 8 설정
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  autobox-mysql-data:
+    name: autobox-mysql-data

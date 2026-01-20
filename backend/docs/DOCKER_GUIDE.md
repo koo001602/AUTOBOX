@@ -1,12 +1,14 @@
-# AutoBox 데이터베이스 Docker 사용 가이드
+# AutoBox 백엔드 Docker 사용 가이드
 
 ## 목차
 1. [Docker 설치](#1-docker-설치)
-2. [환경변수 설정](#2-환경변수-설정)
-3. [데이터베이스 실행](#3-데이터베이스-실행)
-4. [데이터베이스 접속](#4-데이터베이스-접속)
-5. [자주 사용하는 명령어](#5-자주-사용하는-명령어)
-6. [문제 해결](#6-문제-해결)
+2. [빠른 시작](#2-빠른-시작)
+3. [환경변수 설정](#3-환경변수-설정)
+4. [서비스 실행](#4-서비스-실행)
+5. [API 접속](#5-api-접속)
+6. [자주 사용하는 명령어](#6-자주-사용하는-명령어)
+7. [로컬 개발 환경 (uv)](#7-로컬-개발-환경-uv)
+8. [문제 해결](#8-문제-해결)
 
 ---
 
@@ -26,122 +28,180 @@ brew install --cask docker
 # https://www.docker.com/products/docker-desktop/
 ```
 
-### Linux (Ubuntu/Debian)
+### Linux (Ubuntu/Debian) / WSL2
 ```bash
 # Docker 설치
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
 
-# Docker Compose 설치
-sudo apt-get install docker-compose-plugin
+# Docker GPG 키 추가
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 
-# 사용자를 docker 그룹에 추가 (sudo 없이 사용하기 위해)
+# Docker 저장소 추가
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Docker 설치
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Docker 서비스 시작
+sudo service docker start
+
+# 사용자를 docker 그룹에 추가 (sudo 없이 사용)
 sudo usermod -aG docker $USER
 
-# 로그아웃 후 다시 로그인
+# 그룹 권한 적용 (터미널 재시작 또는)
+newgrp docker
 ```
 
 ---
 
-## 2. 환경변수 설정
+## 2. 빠른 시작
 
-### .env 파일 생성
-
-`backend` 폴더에 `.env` 파일을 생성하고 아래 내용을 입력하세요.
+### 한 줄 명령으로 전체 실행
 
 ```bash
-# backend/.env 파일 생성
-cd backend
+cd backend && docker compose up -d --build
 ```
 
-### .env 파일 내용
-
-```env
-# ================================
-# AutoBox 환경변수 설정
-# ================================
-
-# MySQL Docker 컨테이너 설정
-MYSQL_ROOT_PASSWORD=root
-MYSQL_DATABASE=autobox
-
-# 애플리케이션 DB 연결 정보
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=autobox
-DB_USER=root
-DB_PASSWORD=root
-
-# 전체 DATABASE_URL (SQLAlchemy용)
-DATABASE_URL=mysql+pymysql://root:root@localhost:3306/autobox
-
-# 비동기 DATABASE_URL (aiomysql용)
-DATABASE_URL_ASYNC=mysql+aiomysql://root:root@localhost:3306/autobox
-
-# 타임존
-TZ=Asia/Seoul
-```
-
-### 환경변수 설명
-
-| 변수명 | 값 | 설명 |
-|--------|-----|------|
-| `MYSQL_ROOT_PASSWORD` | `root` | MySQL root 계정 비밀번호 |
-| `MYSQL_DATABASE` | `autobox` | 생성할 데이터베이스 이름 |
-| `DB_HOST` | `localhost` | 데이터베이스 호스트 |
-| `DB_PORT` | `3306` | MySQL 포트 |
-| `DB_NAME` | `autobox` | 데이터베이스 이름 |
-| `DB_USER` | `root` | 접속 계정 |
-| `DB_PASSWORD` | `root` | 접속 비밀번호 |
-| `DATABASE_URL` | 위 참조 | SQLAlchemy 연결 문자열 |
-| `TZ` | `Asia/Seoul` | 타임존 설정 |
-
-### 주의사항
-
-> ⚠️ `.env` 파일은 민감한 정보를 포함하므로 **절대 Git에 커밋하지 마세요!**
-
-`.gitignore`에 아래 내용이 포함되어 있는지 확인하세요:
-
-```gitignore
-# 환경변수 파일
-.env
-.env.local
-.env.*.local
-```
-
----
-
-## 3. 데이터베이스 실행
-
-### 처음 시작하기
-
-```bash
-# backend 폴더로 이동
-cd backend
-
-# 컨테이너 시작 (백그라운드 실행)
-docker-compose up -d
-
-# 로그 확인 (초기화 진행 상황)
-docker-compose logs -f mysql
-```
+이 명령으로 **MySQL 데이터베이스**와 **FastAPI 백엔드 서버**가 동시에 실행됩니다.
 
 ### 실행 확인
 
 ```bash
 # 컨테이너 상태 확인
-docker-compose ps
+docker compose ps
 
 # 정상 실행 시 출력 예시:
-# NAME            STATUS          PORTS
-# autobox-mysql   Up (healthy)    0.0.0.0:3306->3306/tcp
+# NAME              STATUS          PORTS
+# autobox-mysql     Up (healthy)    0.0.0.0:3306->3306/tcp
+# autobox-backend   Up (healthy)    0.0.0.0:8000->8000/tcp
+```
+
+### API 테스트
+
+```bash
+# 헬스 체크
+curl http://localhost:8000/health
+
+# 응답: {"success":true,"data":{"status":"healthy"}}
 ```
 
 ---
 
-## 4. 데이터베이스 접속
+## 3. 환경변수 설정
+
+### .env 파일 생성
+
+`backend` 폴더에 `.env` 파일을 생성하세요 (선택사항 - 기본값 사용 가능).
+
+```bash
+cd backend
+cat > .env << 'EOF'
+# Database Configuration
+DATABASE_URL=mysql+pymysql://root:root@localhost:3306/autobox
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=true
+
+# CORS (comma-separated origins)
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+EOF
+```
+
+### 환경변수 설명
+
+| 변수명 | 기본값 | 설명 |
+|--------|--------|------|
+| `DATABASE_URL` | `mysql+pymysql://root:root@localhost:3306/autobox` | 데이터베이스 연결 문자열 |
+| `HOST` | `0.0.0.0` | 서버 바인딩 호스트 |
+| `PORT` | `8000` | 서버 포트 |
+| `DEBUG` | `true` | 디버그 모드 |
+| `CORS_ORIGINS` | `http://localhost:5173,http://localhost:3000` | 허용할 CORS 오리진 |
+
+> ⚠️ `.env` 파일은 민감한 정보를 포함하므로 **Git에 커밋하지 마세요!**
+
+---
+
+## 4. 서비스 실행
+
+### 전체 스택 실행 (권장)
+
+```bash
+cd backend
+
+# 빌드 및 실행
+docker compose up -d --build
+
+# 로그 확인
+docker compose logs -f
+```
+
+### 개별 서비스 실행
+
+```bash
+# MySQL만 실행
+docker compose up -d mysql
+
+# 백엔드만 실행 (MySQL이 실행 중이어야 함)
+docker compose up -d backend
+```
+
+### 서비스 구성
+
+| 서비스 | 컨테이너명 | 포트 | 설명 |
+|--------|-----------|------|------|
+| mysql | autobox-mysql | 3306 | MySQL 8.0 데이터베이스 |
+| backend | autobox-backend | 8000 | FastAPI 백엔드 서버 |
+
+---
+
+## 5. API 접속
 
 ### 접속 정보
+
+| 항목 | URL |
+|------|-----|
+| API Base URL | `http://localhost:8000/api/v1` |
+| Swagger 문서 | `http://localhost:8000/docs` |
+| ReDoc 문서 | `http://localhost:8000/redoc` |
+| WebSocket | `ws://localhost:8000/ws/dashboard` |
+| Health Check | `http://localhost:8000/health` |
+
+### 주요 API 엔드포인트
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| POST | `/api/v1/waybills/scan` | 운송장 스캔 시작 |
+| PUT | `/api/v1/waybills/{id}/recognition` | OCR 인식 결과 저장 |
+| PUT | `/api/v1/waybills/{id}/start-sorting` | 분류 시작 |
+| PUT | `/api/v1/waybills/{id}/complete` | 분류 완료 |
+| GET | `/api/v1/waybills` | 운송장 목록 조회 |
+| GET | `/api/v1/waybills/{id}` | 운송장 상세 조회 |
+| GET | `/api/v1/regions` | 구역 목록 조회 |
+| GET | `/api/v1/system/status` | 시스템 상태 조회 |
+| GET | `/api/v1/stats/regions` | 구역별 통계 |
+| GET | `/api/v1/stats/export` | 엑셀 다운로드 |
+
+### API 테스트 예시
+
+```bash
+# 운송장 스캔 시작
+curl -X POST http://localhost:8000/api/v1/waybills/scan \
+  -H "Content-Type: application/json" \
+  -d '{"camera_id": "cam-capture"}'
+
+# 운송장 목록 조회
+curl http://localhost:8000/api/v1/waybills
+
+# 시스템 상태 조회
+curl http://localhost:8000/api/v1/system/status
+```
+
+### 데이터베이스 접속
 
 | 항목 | 값 |
 |------|-----|
@@ -151,64 +211,58 @@ docker-compose ps
 | User | `root` |
 | Password | `root` |
 
-### CLI로 접속
-
 ```bash
-# Docker 컨테이너 내부 MySQL CLI 접속
+# CLI로 접속
 docker exec -it autobox-mysql mysql -u root -proot autobox
-```
-
-### GUI 도구로 접속
-
-**DBeaver, MySQL Workbench, DataGrip** 등에서:
-- Host: `localhost`
-- Port: `3306`
-- Username: `root`
-- Password: `root`
-- Database: `autobox`
-
-### 애플리케이션 연결 문자열
-
-```python
-# Python (SQLAlchemy)
-DATABASE_URL = "mysql+pymysql://root:root@localhost:3306/autobox"
-
-# Python (aiomysql - 비동기)
-DATABASE_URL = "mysql+aiomysql://root:root@localhost:3306/autobox"
-```
-
-```javascript
-// Node.js
-const config = {
-  host: 'localhost',
-  port: 3306,
-  user: 'root',
-  password: 'root',
-  database: 'autobox'
-};
 ```
 
 ---
 
-## 5. 자주 사용하는 명령어
+## 6. 자주 사용하는 명령어
 
 ### 컨테이너 관리
 
 ```bash
-# 컨테이너 시작
-docker-compose up -d
+# 전체 시작
+docker compose up -d
 
-# 컨테이너 중지
-docker-compose down
+# 전체 시작 (재빌드 포함)
+docker compose up -d --build
 
-# 컨테이너 재시작
-docker-compose restart
+# 전체 중지
+docker compose down
 
-# 로그 확인 (실시간)
-docker-compose logs -f mysql
+# 전체 재시작
+docker compose restart
 
-# 컨테이너 상태 확인
-docker-compose ps
+# 특정 서비스만 재시작
+docker compose restart backend
+```
+
+### 로그 확인
+
+```bash
+# 전체 로그
+docker compose logs -f
+
+# 백엔드 로그만
+docker compose logs -f backend
+
+# MySQL 로그만
+docker compose logs -f mysql
+
+# 최근 100줄만
+docker compose logs --tail=100 backend
+```
+
+### 컨테이너 접속
+
+```bash
+# 백엔드 컨테이너 쉘 접속
+docker exec -it autobox-backend /bin/bash
+
+# MySQL 컨테이너 접속
+docker exec -it autobox-mysql mysql -u root -proot autobox
 ```
 
 ### 데이터 관리
@@ -220,83 +274,172 @@ docker exec autobox-mysql mysqldump -u root -proot autobox > backup.sql
 # 데이터 복원
 docker exec -i autobox-mysql mysql -u root -proot autobox < backup.sql
 
-# 데이터 완전 초기화 (주의: 모든 데이터 삭제됨!)
-docker-compose down -v
-docker-compose up -d
+# 데이터 완전 초기화 (주의: 모든 데이터 삭제!)
+docker compose down -v
+docker compose up -d --build
 ```
 
-### 데이터베이스 직접 조작
+### 이미지 관리
 
 ```bash
-# SQL 파일 실행
-docker exec -i autobox-mysql mysql -u root -proot autobox < your_script.sql
+# 이미지 재빌드 (캐시 사용)
+docker compose build
 
-# 특정 쿼리 실행
-docker exec autobox-mysql mysql -u root -proot -e "SELECT * FROM logistics_item LIMIT 5;" autobox
+# 이미지 재빌드 (캐시 없이)
+docker compose build --no-cache
+
+# 사용하지 않는 이미지 정리
+docker image prune -f
 ```
 
 ---
 
-## 6. 문제 해결
+## 7. 로컬 개발 환경 (uv)
 
-### 포트 충돌 (3306 포트가 이미 사용 중)
+Docker 대신 로컬에서 직접 개발하려면 **uv**를 사용할 수 있습니다.
+
+### uv 설치
 
 ```bash
-# 방법 1: 기존 MySQL 서비스 중지
-# Windows: 서비스 관리자에서 MySQL 중지
-# Mac/Linux: 
-sudo systemctl stop mysql
+# uv 설치
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 방법 2: docker-compose.yml에서 포트 변경
-# ports: "3307:3306" 으로 수정 후 재시작
+# 쉘 설정 적용
+source ~/.bashrc  # 또는 ~/.zshrc
+```
+
+### 개발 환경 설정
+
+```bash
+cd backend
+
+# MySQL만 Docker로 실행
+docker compose up -d mysql
+
+# 가상환경 생성 및 의존성 설치
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# 개발 서버 실행 (핫 리로드)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### pyproject.toml 사용 (대안)
+
+```bash
+cd backend
+
+# uv sync로 의존성 설치
+uv sync
+
+# 서버 실행
+uv run uvicorn app.main:app --reload
+```
+
+---
+
+## 8. 문제 해결
+
+### 포트 충돌
+
+```bash
+# 3306 포트 사용 중인 프로세스 확인
+sudo lsof -i :3306
+
+# 8000 포트 사용 중인 프로세스 확인
+sudo lsof -i :8000
+
+# 해결방법 1: 기존 프로세스 종료
+sudo kill -9 <PID>
+
+# 해결방법 2: docker-compose.yml에서 포트 변경
+# ports: "3307:3306" 또는 "8001:8000"
+```
+
+### 백엔드가 MySQL에 연결되지 않을 때
+
+```bash
+# MySQL이 healthy 상태인지 확인
+docker compose ps
+
+# MySQL 로그 확인
+docker compose logs mysql
+
+# 백엔드 로그에서 에러 확인
+docker compose logs backend
+
+# 네트워크 확인
+docker network ls
+docker network inspect autobox-network
 ```
 
 ### 컨테이너가 시작되지 않을 때
 
 ```bash
-# 로그 확인
-docker-compose logs mysql
+# 상세 로그 확인
+docker compose logs
 
 # 컨테이너 완전 재생성
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d --build
+
+# 이미지 재빌드
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### 초기화 스크립트가 실행되지 않을 때
 
-초기화 스크립트(`database.sql`)는 **최초 실행 시에만** 실행됩니다.
-이미 데이터가 있는 상태에서 스키마를 변경하려면:
+`database.sql`은 **최초 실행 시에만** 실행됩니다.
 
 ```bash
-# 방법 1: 볼륨 삭제 후 재시작 (데이터 초기화)
-docker-compose down -v
-docker-compose up -d
+# 볼륨 삭제 후 재시작 (데이터 초기화)
+docker compose down -v
+docker compose up -d
 
-# 방법 2: 수동으로 SQL 실행
+# 또는 수동으로 SQL 실행
 docker exec -i autobox-mysql mysql -u root -proot autobox < database.sql
 ```
 
-### Windows에서 줄바꿈 문제
-
-Git에서 CRLF 설정 문제로 SQL 파일이 제대로 실행되지 않을 수 있습니다:
+### Docker 빌드 오류
 
 ```bash
-# .gitattributes 파일에 추가
-*.sql text eol=lf
+# Docker 캐시 정리
+docker builder prune -f
+
+# 모든 정리 후 재시작
+docker compose down -v
+docker system prune -f
+docker compose up -d --build
+```
+
+### WSL2에서 Docker가 안 될 때
+
+```bash
+# Docker 서비스 시작
+sudo service docker start
+
+# Docker 소켓 권한 확인
+sudo chmod 666 /var/run/docker.sock
 ```
 
 ---
 
 ## 팀 협업 Tips
 
-1. **동일한 환경 보장**: 모든 팀원이 같은 `docker-compose.yml`을 사용하면 동일한 DB 환경을 가질 수 있습니다.
+1. **동일한 환경 보장**: 모든 팀원이 같은 `docker-compose.yml`을 사용하면 동일한 개발 환경을 가질 수 있습니다.
 
-2. **스키마 변경 시**: `database.sql`을 수정한 후 팀원들에게 알려주세요. 팀원들은 다음 명령으로 업데이트할 수 있습니다:
+2. **스키마 변경 시**: `database.sql`을 수정한 후 팀원들에게 알려주세요:
    ```bash
-   docker-compose down -v
-   docker-compose up -d
+   docker compose down -v
+   docker compose up -d --build
    ```
 
-3. **테스트 데이터**: 공유할 테스트 데이터가 있다면 `seed.sql` 파일을 만들어 `docker-entrypoint-initdb.d`에 추가하세요.
+3. **백엔드 코드 변경 시**: 
+   - Docker: `docker compose up -d --build`
+   - 로컬 개발: 자동 리로드 (`--reload` 옵션)
 
-4. **비밀번호 관리**: 실제 운영 환경에서는 `.env` 파일을 사용하고, `.gitignore`에 추가하세요.
+4. **API 문서 공유**: http://localhost:8000/docs 에서 Swagger UI로 API를 테스트하고 공유하세요.
+
+5. **환경변수 관리**: `.env.example` 파일을 Git에 커밋하고, 실제 `.env`는 `.gitignore`에 추가하세요.

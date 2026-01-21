@@ -17,6 +17,7 @@ from app.routers import (
     cameras_router,
 )
 from app.routers.websocket import router as websocket_router
+from app.routers.frontend_compat import router as frontend_compat_router
 
 settings = get_settings()
 
@@ -80,6 +81,9 @@ app.include_router(cameras_router, prefix=API_PREFIX)
 
 # WebSocket router (no API prefix)
 app.include_router(websocket_router)
+
+# Frontend compatibility router (/api prefix for legacy frontend support)
+app.include_router(frontend_compat_router, prefix="/api")
 
 
 @app.get("/")

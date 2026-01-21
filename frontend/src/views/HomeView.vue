@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
-import { fetchDashboardStats } from '../api'
+import { fetchDashboardStats, fetchWaybills } from '../api'
 
 // 1. 날짜 설정
 const getToday = () => {
@@ -11,7 +11,7 @@ const getToday = () => {
   return today.toISOString().split('T')[0];
 }
 const maxDate = ref(getToday()) 
-const selectedDate = ref('2026-01-19') 
+const selectedDate = ref(getToday()) 
 
 // 2. 반응형 데이터
 const chartSeries = ref([])
@@ -24,12 +24,25 @@ let refreshInterval = null
 const filterRegion = ref('전체')
 const filterStatus = ref('전체')
 
+// 상태 매핑 (백엔드 → 프론트엔드)
+const statusMap = {
+  'READY': '대기 중',
+  'MOVING': '이동 중',
+  'COMPLETED': '완료',
+  'ERROR': '오류'
+}
+
 // 3. 데이터 로드 함수
 const loadData = async () => {
   try {
-    const res = await fetchDashboardStats(selectedDate.value)
-    const { summary, logs } = res.data
+    // 구역별 통계와 운송장 목록을 병렬로 호출
+    const [statsRes, waybillsRes] = await Promise.all([
+      fetchDashboardStats(selectedDate.value),
+      fetchWaybills({ date: selectedDate.value, size: 100 })
+    ])
 
+    // 구역별 통계 처리
+    const regionStats = statsRes.data.data || []
     const cities = ['서울', '부산', '광주', '대전', '대구']
     let totalDone = 0
     let totalLeft = 0
@@ -37,11 +50,13 @@ const loadData = async () => {
     const pendingArr = [] 
 
     cities.forEach(city => {
-      const cityData = summary[city] || { done: 0, left: 0 }
-      finishedArr.push({ x: city, y: cityData.done, fillColor: '#3b82f6' })
-      pendingArr.push({ x: city, y: cityData.left, fillColor: '#475569' })
-      totalDone += cityData.done
-      totalLeft += cityData.left
+      const cityData = regionStats.find(r => r.region_name === city) || { completed: 0, ready: 0, moving: 0, error: 0 }
+      const done = cityData.completed || 0
+      const left = (cityData.ready || 0) + (cityData.moving || 0) + (cityData.error || 0)
+      finishedArr.push({ x: city, y: done, fillColor: '#3b82f6' })
+      pendingArr.push({ x: city, y: left, fillColor: '#475569' })
+      totalDone += done
+      totalLeft += left
     })
 
     finishedArr.unshift({ x: '전체', y: totalDone, fillColor: '#10b981' })
@@ -56,15 +71,23 @@ const loadData = async () => {
       { name: '남은 건수', data: pendingArr }
     ]
 
-    logisticsData.value = logs
+    // 운송장 목록 처리
+    const waybillItems = waybillsRes.data.data?.items || []
+    logisticsData.value = waybillItems.map(item => ({
+      id: item.tracking_number,
+      target: item.destination || '-',
+      status: statusMap[item.status] || item.status,
+      dateTime: item.completed_at || item.created_at || ''
+    }))
 
-    if (logs.length > 0) {
-      const recentItem = logs[0]
+    // 최근 인식 정보
+    if (waybillItems.length > 0) {
+      const recentItem = waybillItems[0]
       latestScan.value = {
-        destination: recentItem.target,
+        destination: recentItem.destination || '-',
         matchRate: '99.8%',
         camId: 'CAM:01',
-        waybill: recentItem.id,
+        waybill: recentItem.tracking_number,
         category: 'General', 
         weight: 'N/A',
         priority: 'Normal'

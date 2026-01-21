@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { fetchDeviceStatus } from '../api'
+import { fetchSystemStatus } from '../api'
 
 // 상태 변수
 const batteryLevel = ref(0)
@@ -11,12 +11,12 @@ let timer = null
 // 데이터 가져오기 함수
 const getStatus = async () => {
   try {
-    // DB에 저장된 로봇 ID 조회
-    const res = await fetchDeviceStatus('ROBOT_01')
-    const data = res.data
+    // 시스템 상태 조회
+    const res = await fetchSystemStatus()
+    const data = res.data.data
 
-    batteryLevel.value = data.battery_level
-    isConnected.value = data.is_connected
+    batteryLevel.value = data.battery_level || 0
+    isConnected.value = data.is_connected || false
     
     // 연결 상태 텍스트 설정
     if (data.is_connected) {

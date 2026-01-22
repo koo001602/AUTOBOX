@@ -7,7 +7,8 @@ master
   ├── frontend
   ├── backend
   ├── ai
-  └── embedded
+  ├── embedded
+  └── develop <--- 여기선 배포 운영 개발
 ```
 
 **기능 브랜치:** `파트/feat/설명` 또는 `파트/fix/설명`

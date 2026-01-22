@@ -14,20 +14,6 @@
 
 ## 1. Docker 설치
 
-### Windows
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) 다운로드 및 설치
-2. 설치 완료 후 Docker Desktop 실행
-3. 시스템 트레이에서 Docker 아이콘이 "Running" 상태인지 확인
-
-### Mac
-```bash
-# Homebrew로 설치
-brew install --cask docker
-
-# 또는 Docker Desktop 직접 다운로드
-# https://www.docker.com/products/docker-desktop/
-```
-
 ### Linux (Ubuntu/Debian) / WSL2
 ```bash
 # Docker 설치

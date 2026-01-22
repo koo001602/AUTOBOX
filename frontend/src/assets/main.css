@@ -1,24 +1,53 @@
-/* 1. 화면 전체를 사용하기 위한 설정 */
+@import './base.css';
+
+/* App 전역 스타일 */
 #app {
   width: 100%;
-  min-height: 100vh; /* 화면 전체 높이 사용 */
+  min-height: 100vh;
   margin: 0;
   padding: 0;
   font-weight: normal;
   display: block;
 }
 
-/* 2. 기본 여백 제거 및 배경색 설정 */
+/* Body 스타일 - CSS 변수 사용 */
 body {
   margin: 0;
   padding: 0;
-  background-color: #1a1a1a; 
-  color: #ffffff;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
 }
 
-/* 3. 링크 스타일 초기화 */
+/* 링크 스타일 */
 a {
   text-decoration: none;
   color: inherit;
-  transition: 0.4s;
+  transition: color 0.2s ease;
+}
+
+/* 선택 스타일 */
+::selection {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* 입력 필드 기본 스타일 */
+input, select, button, textarea {
+  font-family: inherit;
+}
+
+/* 포커스 아웃라인 */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 버튼 초기화 */
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
 }

@@ -1,69 +1,48 @@
 <script setup>
 import { RouterView } from 'vue-router'
-import Sidebar from './components/Sidebar.vue'
-import TopHeader from './components/TopHeader.vue'
+import { onMounted } from 'vue'
+import TopNavigation from './components/TopNavigation.vue'
+import { useTheme } from './composables'
+
+// 테마 초기화
+const { initTheme } = useTheme()
+
+onMounted(() => {
+  initTheme()
+})
 </script>
 
 <template>
   <div class="app-layout">
-    <Sidebar />
-
-    <div class="main-content">
-      <TopHeader />
-      <div class="view-container">
-        <RouterView />
-      </div>
-    </div>
+    <TopNavigation />
+    <main class="main-content">
+      <RouterView />
+    </main>
   </div>
 </template>
 
 <style>
-:root {
-  --bg-dark: #0b1120;
-  --bg-panel: #151b2d;
-  --primary-blue: #4f8aff;
-  --text-main: #ffffff;
-  --text-sub: #94a3b8;
-  --accent-green: #10b981;
-  --accent-red: #ef4444;
-  --border-color: #2d3748;
-}
-
-body {
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  font-family: 'Noto Sans KR', sans-serif;
-  margin: 0;
-  overflow: hidden; 
-  height: 100vh;
-}
-
+/* Global App Styles */
 #app {
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 </style>
 
 <style scoped>
 .app-layout {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background-color: var(--bg-base);
 }
 
 .main-content {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-dark);
-  height: 100%;
   overflow: hidden;
-}
-
-.view-container {
-  flex: 1;
-  padding: 12px; 
-  overflow: hidden; 
   display: flex;
   flex-direction: column;
 }

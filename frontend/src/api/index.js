@@ -32,19 +32,60 @@ export const fetchWaybills = (params = {}) => {
   return apiClient.get('/waybills', { params })
 }
 
-// 5. 알림 목록 조회
+// 5. 운송장 상세 조회 (scan_logs 포함)
+export const fetchWaybillDetail = (waybillId) => {
+  return apiClient.get(`/waybills/${waybillId}`)
+}
+
+// 6. 알림 목록 조회
 export const fetchAlerts = (params = {}) => {
   return apiClient.get('/alerts', { params })
 }
 
-// 6. 구역 목록 조회
+// 7. 알림 해결 처리
+export const resolveAlert = (alertId) => {
+  return apiClient.patch(`/alerts/${alertId}/resolve`)
+}
+
+// 8. 구역 목록 조회
 export const fetchRegions = () => {
   return apiClient.get('/regions')
 }
 
-// 7. 카메라 목록 조회
+// 9. 카메라 목록 조회
 export const fetchCameras = () => {
   return apiClient.get('/cameras')
+}
+
+// 10. 최신 인식 정보 조회
+export const fetchLatestRecognition = () => {
+  return apiClient.get('/recognition/latest')
+}
+
+// 11. 운송장 스캔 시작 (새 운송장 생성)
+export const startWaybillScan = (cameraId = 'cam-capture') => {
+  return apiClient.post('/waybills/scan', { camera_id: cameraId })
+}
+
+// 12. OCR 인식 결과 저장
+export const saveRecognitionResult = (waybillId, data) => {
+  return apiClient.put(`/waybills/${waybillId}/recognition`, data)
+}
+
+// 13. 분류 시작
+export const startSorting = (waybillId) => {
+  return apiClient.put(`/waybills/${waybillId}/start-sorting`)
+}
+
+// 14. 분류 완료
+export const completeSorting = (waybillId) => {
+  return apiClient.put(`/waybills/${waybillId}/complete`)
+}
+
+// 11. 엑셀 다운로드 URL 생성
+export const getExportUrl = (dateStr) => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
+  return `${baseUrl}/stats/export${dateStr ? `?date=${dateStr}` : ''}`
 }
 
 // API 클라이언트 내보내기 (커스텀 요청용)

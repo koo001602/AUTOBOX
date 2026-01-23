@@ -25,3 +25,6 @@ openpyxl==3.1.2
 
 # Environment
 python-dotenv==1.0.0
+
+# MQTT
+paho-mqtt==2.1.0

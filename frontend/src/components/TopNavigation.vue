@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useSystemStatus, useTheme, useAlerts } from '../composables'
+import { getMockMode } from '../api'
 
 // Composables
 const { batteryLevel, isConnected, connectionText } = useSystemStatus()
@@ -10,6 +11,9 @@ const { alerts } = useAlerts()
 
 // 미해결 알림 수
 const alertCount = computed(() => alerts.value.length)
+
+// 목업 모드 여부
+const isMockMode = getMockMode()
 </script>
 
 <template>
@@ -20,6 +24,7 @@ const alertCount = computed(() => alerts.value.length)
         <img src="/assets/logo_original.png" alt="Autobox" class="logo-img" />
         <span class="logo-text">Autobox</span>
         <span class="logo-badge">CONTROL</span>
+        <span v-if="isMockMode" class="mock-badge">MOCK</span>
       </div>
 
       <nav class="nav-menu">
@@ -112,12 +117,16 @@ const alertCount = computed(() => alerts.value.length)
 </template>
 
 <style scoped>
+/* =============================================
+   미니멀 상단 네비게이션
+   ============================================= */
+
 .top-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 72px;
-  padding: 0 28px;
+  height: 56px;
+  padding: 0 20px;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
@@ -127,37 +136,48 @@ const alertCount = computed(() => alerts.value.length)
 .nav-left {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .logo-img {
-  height: 44px;
+  height: 32px;
   width: auto;
   object-fit: contain;
 }
 
 .logo-text {
-  font-size: var(--font-size-h2);
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
 .logo-badge {
-  font-size: var(--font-size-xs);
-  font-weight: 700;
-  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6px;
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   color: var(--text-muted);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
+}
+
+.mock-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6px;
+  background-color: #f59e0b;
+  border: 1px solid #d97706;
+  border-radius: 4px;
+  color: white;
+  letter-spacing: 0.05em;
 }
 
 /* Navigation Menu */
@@ -169,14 +189,15 @@ const alertCount = computed(() => alerts.value.length)
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 22px;
-  border-radius: 8px;
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 36px;
+  border-radius: 6px;
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: var(--font-size-lg);
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .nav-item:hover {
@@ -187,28 +208,29 @@ const alertCount = computed(() => alerts.value.length)
 .nav-item.active {
   background-color: var(--color-primary);
   color: white;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .nav-item svg {
   flex-shrink: 0;
+  width: 16px;
+  height: 16px;
 }
 
 /* Right Section */
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .status-group {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 10px 18px;
+  gap: 16px;
+  padding: 6px 14px;
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .status-item {
@@ -219,18 +241,18 @@ const alertCount = computed(() => alerts.value.length)
 }
 
 .status-label {
-  font-size: var(--font-size-label);
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .status-value {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: var(--font-size-data-base);
+  gap: 5px;
+  font-size: 12px;
   font-weight: 600;
   font-family: var(--font-family-mono);
 }
@@ -243,13 +265,10 @@ const alertCount = computed(() => alerts.value.length)
 
 .status-dot.online {
   background-color: var(--color-success);
-  box-shadow: 0 0 8px var(--color-success);
-  animation: pulse-status 2s infinite;
 }
 
 .status-dot.error {
   background-color: var(--color-error);
-  box-shadow: 0 0 8px var(--color-error);
 }
 
 .status-online .status-text {
@@ -261,7 +280,7 @@ const alertCount = computed(() => alerts.value.length)
 }
 
 .battery-text {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .text-success {
@@ -274,7 +293,7 @@ const alertCount = computed(() => alerts.value.length)
 
 .status-divider {
   width: 1px;
-  height: 28px;
+  height: 24px;
   background-color: var(--border-color);
 }
 
@@ -284,39 +303,42 @@ const alertCount = computed(() => alerts.value.length)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background-color: var(--bg-elevated);
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  border-radius: 6px;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+}
+
+.alert-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .alert-btn:hover {
-  background-color: var(--bg-hover);
+  background-color: var(--bg-elevated);
   color: var(--text-primary);
-  border-color: var(--border-color-light);
 }
 
 .alert-btn.has-alerts {
   color: var(--color-error);
   border-color: var(--color-error);
-  animation: pulse-alert 2s infinite;
 }
 
 .alert-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   background-color: var(--color-error);
-  border-radius: 10px;
-  font-size: 0.7rem;
-  font-weight: 700;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
   color: white;
   display: flex;
   align-items: center;
@@ -328,43 +350,44 @@ const alertCount = computed(() => alerts.value.length)
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background-color: var(--bg-elevated);
+  width: 36px;
+  height: 36px;
+  background-color: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-secondary);
+  border-radius: 6px;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+}
+
+.theme-toggle svg {
+  width: 16px;
+  height: 16px;
 }
 
 .theme-toggle:hover {
-  background-color: var(--bg-hover);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
-@keyframes pulse-alert {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+/* 태블릿 세로 모드 */
+@media (max-width: 1024px) {
+  .status-item {
+    display: none;
+  }
+  
+  .status-item.system-status {
+    display: flex;
+  }
 }
 
-@keyframes pulse-status {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Responsive */
 @media (max-width: 768px) {
   .status-group {
     display: none;
   }
   
-  .nav-item span {
-    display: none;
-  }
-  
-  .logo-badge {
+  .logo-badge,
+  .mock-badge {
     display: none;
   }
 }

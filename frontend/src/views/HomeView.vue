@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
 import { useDashboard } from '../composables'
 import { getDashboardBarChartOptions } from '../config/chartOptions'
@@ -22,6 +22,9 @@ const {
   downloadExcel
 } = useDashboard()
 
+// 목표 박스 수 (Box Count)
+const targetBoxCount = ref(1000)
+
 // 차트 옵션 (chartMax 반응형 연동)
 const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
 
@@ -43,7 +46,20 @@ const formatProcessTime = (seconds) => {
     <!-- Header Bar -->
     <header class="dashboard-header">
       <div class="header-left">
-        <input type="date" v-model="selectedDate" :max="maxDate" class="date-input" />
+        <div class="control-group">
+          <label class="control-label">DATE</label>
+          <input type="date" v-model="selectedDate" :max="maxDate" class="glass-input date-input" />
+        </div>
+        
+        <div class="control-divider"></div>
+
+        <div class="control-group">
+          <label class="control-label">TARGET BOXES</label>
+          <div class="input-wrapper">
+             <input type="number" v-model="targetBoxCount" class="glass-input box-input" min="0" placeholder="0" />
+             <span class="input-unit">EA</span>
+          </div>
+        </div>
       </div>
       <div class="header-right">
         <button class="btn-icon" @click="downloadExcel" title="엑셀 다운로드">

@@ -409,12 +409,23 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { startWaybillScan, startSorting, completeSorting, fetchWaybills } from '../api'
+import {
+  startWaybillScan,
+  startSorting,
+  completeSorting,
+  fetchWaybills,
+  fetchVehiclePosition,
+  fetchMapData,
+  fetchSensorStatus,
+  getMockMode
+} from '../api'
 
 const currentTime = ref('')
 const isScanning = ref(false)
 const currentScan = ref(null)
 const scanHistory = ref([])
+const isLoading = ref(true)
+const isMockMode = getMockMode()
 
 let timeInterval = null
 
@@ -424,51 +435,34 @@ const zoom = ref(1)
 const isPanning = ref(false)
 const panStart = ref({ x: 0, y: 0 })
 
-// Vehicle State
+// Vehicle State (초기값은 빈 상태)
 const vehicle = ref({
-  x: 200,
-  y: 300,
+  x: 0,
+  y: 0,
   angle: 0
 })
 
-const vehiclePath = ref([
-  { x: 200, y: 300 },
-])
+const vehiclePath = ref([])
 
-// Buildings
-const buildings = ref([
-  { id: 1, x: 150, y: 150, width: 100, height: 80 },
-  { id: 2, x: 650, y: 150, width: 120, height: 100 },
-  { id: 3, x: 150, y: 450, width: 90, height: 110 },
-  { id: 4, x: 700, y: 450, width: 100, height: 90 },
-])
+// Buildings (API에서 로드)
+const buildings = ref([])
 
-// Waypoints
-const waypoints = ref([
-  { id: 1, label: 'A', x: 200, y: 300, color: 'var(--color-success)' },
-  { id: 2, label: 'B', x: 500, y: 200, color: 'var(--color-warning)' },
-  { id: 3, label: 'C', x: 750, y: 300, color: 'var(--color-error)' },
-  { id: 4, label: 'D', x: 500, y: 600, color: 'var(--color-info)' },
-])
+// Waypoints (API에서 로드)
+const waypoints = ref([])
 
 const currentWaypointIndex = ref(0)
 
-// Vehicle Status
+// Vehicle Status (API에서 로드)
 const vehicleStatus = ref({
-  mode: 'AUTO',
-  speed: 12.5,
-  battery: 85,
-  distanceToTarget: 245,
-  eta: 78
+  mode: '-',
+  speed: 0,
+  battery: 0,
+  distanceToTarget: 0,
+  eta: 0
 })
 
-// Sensors
-const sensors = ref([
-  { name: 'LIDAR', status: 'ok', value: '정상 (360°)' },
-  { name: 'Camera', status: 'ok', value: '정상 (1080p)' },
-  { name: 'GPS', status: 'ok', value: '정확도 ±2m' },
-  { name: 'IMU', status: 'ok', value: '정상' },
-])
+// Sensors (API에서 로드)
+const sensors = ref([])
 
 // Map functions
 const getPathString = (path) => {
@@ -532,10 +526,14 @@ const endPan = () => {
   isPanning.value = false
 }
 
-// Vehicle simulation
+// Vehicle simulation (목업 모드에서만 사용)
 let simulationInterval = null
+let dataPollingInterval = null
 
+// 목업 모드용 시뮬레이션
 const simulateVehicleMovement = () => {
+  if (waypoints.value.length === 0) return
+
   if (currentWaypointIndex.value >= waypoints.value.length) {
     currentWaypointIndex.value = 0
     vehiclePath.value = [{ x: waypoints.value[0].x, y: waypoints.value[0].y }]
@@ -576,6 +574,98 @@ const simulateVehicleMovement = () => {
   vehicleStatus.value.eta = (distance / (vehicleStatus.value.speed / 3.6)).toFixed(0)
 
   updateViewBox()
+}
+
+// API에서 차량 위치 가져오기
+const loadVehiclePosition = async () => {
+  try {
+    const res = await fetchVehiclePosition()
+    if (res.data?.success && res.data?.data) {
+      const data = res.data.data
+      vehicle.value = {
+        x: data.x || 0,
+        y: data.y || 0,
+        angle: data.angle || 0
+      }
+      vehicleStatus.value = {
+        mode: data.mode || 'UNKNOWN',
+        speed: parseFloat(data.speed) || 0,
+        battery: data.battery || 0,
+        distanceToTarget: vehicleStatus.value.distanceToTarget,
+        eta: vehicleStatus.value.eta
+      }
+      vehiclePath.value.push({ x: vehicle.value.x, y: vehicle.value.y })
+      if (vehiclePath.value.length > 100) {
+        vehiclePath.value.shift()
+      }
+      updateViewBox()
+    }
+  } catch (err) {
+    console.error('차량 위치 로드 실패:', err)
+  }
+}
+
+// API에서 맵 데이터 가져오기
+const loadMapData = async () => {
+  try {
+    const res = await fetchMapData()
+    if (res.data?.success && res.data?.data) {
+      const data = res.data.data
+      waypoints.value = (data.waypoints || []).map(wp => ({
+        ...wp,
+        color: wp.color || 'var(--color-primary)'
+      }))
+      buildings.value = data.buildings || []
+
+      // 초기 차량 위치 설정 (첫 번째 웨이포인트)
+      if (waypoints.value.length > 0 && vehicle.value.x === 0 && vehicle.value.y === 0) {
+        vehicle.value.x = waypoints.value[0].x
+        vehicle.value.y = waypoints.value[0].y
+        vehiclePath.value = [{ x: vehicle.value.x, y: vehicle.value.y }]
+      }
+    }
+  } catch (err) {
+    console.error('맵 데이터 로드 실패:', err)
+  }
+}
+
+// API에서 센서 상태 가져오기
+const loadSensorStatus = async () => {
+  try {
+    const res = await fetchSensorStatus()
+    if (res.data?.success && res.data?.data) {
+      sensors.value = res.data.data.sensors || []
+    }
+  } catch (err) {
+    console.error('센서 상태 로드 실패:', err)
+  }
+}
+
+// 초기 데이터 로드
+const loadInitialData = async () => {
+  isLoading.value = true
+  try {
+    await Promise.all([
+      loadMapData(),
+      loadVehiclePosition(),
+      loadSensorStatus()
+    ])
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 실시간 데이터 폴링 (실제 모드)
+const startDataPolling = () => {
+  // 1초마다 차량 위치 업데이트
+  dataPollingInterval = setInterval(async () => {
+    await loadVehiclePosition()
+  }, 1000)
+
+  // 5초마다 센서 상태 업데이트
+  setInterval(async () => {
+    await loadSensorStatus()
+  }, 5000)
 }
 
 // 시간 업데이트
@@ -681,19 +771,31 @@ const selectScan = (item) => {
 const loadHistory = async () => {
   try {
     const res = await fetchWaybills({ size: 10 })
-    if (res.data.success) {
+    if (res.data?.success || res.data?.data) {
       scanHistory.value = res.data.data?.items || []
     }
   } catch (err) {
+    // 백엔드 연결 실패 시 빈 배열 유지
     console.error('이력 로드 실패:', err)
+    scanHistory.value = []
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
   loadHistory()
-  simulationInterval = setInterval(simulateVehicleMovement, 50)
+
+  // 초기 데이터 로드
+  await loadInitialData()
+
+  if (isMockMode) {
+    // 목업 모드: 시뮬레이션 실행
+    simulationInterval = setInterval(simulateVehicleMovement, 50)
+  } else {
+    // 실제 모드: API 폴링 시작
+    startDataPolling()
+  }
 })
 
 onUnmounted(() => {
@@ -702,6 +804,9 @@ onUnmounted(() => {
   }
   if (simulationInterval) {
     clearInterval(simulationInterval)
+  }
+  if (dataPollingInterval) {
+    clearInterval(dataPollingInterval)
   }
 })
 </script>

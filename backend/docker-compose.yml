@@ -60,7 +60,7 @@ services:
     container_name: autobox-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://root:root@mysql:3306/autobox}
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://S14P11A403:1UB5b1SMZQ@ssafy-mysql-db.mysql.database.azure.com:3306/S14P11A403?charset=utf8mb4}
       HOST: 0.0.0.0
       PORT: 8000
       DEBUG: ${DEBUG:-false}

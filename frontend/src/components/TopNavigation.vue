@@ -43,7 +43,7 @@ const isMockMode = getMockMode()
             <path d="m22 8-6 4 6 4V8Z" />
             <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
           </svg>
-          <span>실시간 영상</span>
+          <span>실시간 모니터링</span>
         </RouterLink>
       </nav>
     </div>
@@ -195,7 +195,7 @@ const isMockMode = getMockMode()
 .nav-menu {
   display: flex;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--overlay-dark);
   padding: 4px;
   border-radius: 8px;
   border: 1px solid var(--glass-border);
@@ -219,7 +219,7 @@ const isMockMode = getMockMode()
 
 .nav-item:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-lighter);
 }
 
 .nav-item.active {
@@ -262,7 +262,7 @@ const isMockMode = getMockMode()
   align-items: center;
   gap: 20px;
   padding: 8px 20px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--overlay-dark);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   backdrop-filter: blur(4px);
@@ -332,7 +332,7 @@ const isMockMode = getMockMode()
 .status-divider {
   width: 1px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--glass-border);
 }
 
 /* Alert Button */
@@ -343,7 +343,7 @@ const isMockMode = getMockMode()
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-lighter);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   color: var(--text-muted);
@@ -357,9 +357,9 @@ const isMockMode = getMockMode()
 }
 
 .alert-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--overlay-light);
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--glass-border-hover);
 }
 
 .alert-btn.has-alerts {
@@ -393,7 +393,7 @@ const isMockMode = getMockMode()
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-lighter);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   color: var(--text-muted);
@@ -402,10 +402,10 @@ const isMockMode = getMockMode()
 }
 
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--color-warning); /* Sun color on hover */
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+  background: var(--overlay-light);
+  color: var(--color-warning);
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 0 10px var(--color-warning-glow);
 }
 
 /* Responsive */
@@ -423,9 +423,9 @@ const isMockMode = getMockMode()
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.8);
+    background: var(--glass-header);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     padding: 8px;
     z-index: 100;

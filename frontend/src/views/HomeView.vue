@@ -298,7 +298,7 @@ const formatProcessTime = (seconds) => {
 .header-left {
   display: flex;
   align-items: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--overlay-dark);
   padding: 6px 16px;
   border-radius: 12px;
   border: 1px solid var(--glass-border);
@@ -367,7 +367,7 @@ const formatProcessTime = (seconds) => {
 .control-divider {
   width: 1px;
   height: 24px;
-  background: #334155;
+  background: var(--glass-border);
   align-self: center;
 }
 
@@ -626,7 +626,7 @@ const formatProcessTime = (seconds) => {
 .scan-main {
   text-align: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--overlay-dark);
   border-radius: 12px;
   border: 1px solid var(--glass-border);
   position: relative;
@@ -678,15 +678,15 @@ const formatProcessTime = (seconds) => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--overlay-light);
   border-radius: 8px;
   border: 1px solid transparent;
   transition: border-color 0.2s;
 }
 
 .scan-info-item:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--glass-border);
+  background: var(--overlay-lighter);
 }
 
 .info-label {
@@ -726,7 +726,7 @@ const formatProcessTime = (seconds) => {
 .filter-select {
   padding: 4px 10px;
   min-height: 32px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--overlay-dark);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
@@ -764,7 +764,7 @@ const formatProcessTime = (seconds) => {
   position: sticky;
   top: 0;
   padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.8); /* Semi-transparent dark header */
+  background: var(--table-header-bg);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--glass-border);
   color: var(--text-muted);
@@ -788,7 +788,7 @@ const formatProcessTime = (seconds) => {
 }
 
 .table-row:hover td {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-lighter);
 }
 
 .cell-id {
@@ -807,7 +807,7 @@ const formatProcessTime = (seconds) => {
   font-weight: 600;
   font-size: 12px;
   padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-lighter);
   border-radius: 4px;
   color: var(--text-secondary);
 }

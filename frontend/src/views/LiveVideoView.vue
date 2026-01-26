@@ -106,6 +106,119 @@
       </section>
     </div>
 
+    <!-- Center: Real-time Map -->
+    <div class="live-center">
+      <section class="panel map-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+              <line x1="9" x2="9" y1="3" y2="18" />
+              <line x1="15" x2="15" y1="6" y2="21" />
+            </svg>
+            실시간 맵
+          </div>
+          <div class="header-controls">
+            <button class="btn-zoom" @click="zoomIn" title="확대">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+                <line x1="11" x2="11" y1="8" y2="14" />
+                <line x1="8" x2="14" y1="11" y2="11" />
+              </svg>
+            </button>
+            <button class="btn-zoom" @click="zoomOut" title="축소">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+                <line x1="8" x2="14" y1="11" y2="11" />
+              </svg>
+            </button>
+            <button class="btn-reset" @click="resetView" title="초기화">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-body map-body">
+          <div class="map-container">
+            <!-- SVG Map Canvas -->
+            <svg class="map-canvas" :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`"
+              @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan" @mouseup="endPan"
+              @mouseleave="endPan">
+              <!-- Grid Background -->
+              <defs>
+                <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                  <rect width="50" height="50" fill="none" />
+                  <path d="M 50 0 L 0 0 0 50" fill="none" stroke="var(--glass-border)" stroke-width="0.5" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+
+              <!-- Map Elements -->
+              <g class="map-elements">
+                <!-- Roads -->
+                <line x1="100" y1="300" x2="900" y2="300" stroke="var(--text-muted)" stroke-width="8" opacity="0.3" />
+                <line x1="500" y1="100" x2="500" y2="700" stroke="var(--text-muted)" stroke-width="8" opacity="0.3" />
+
+                <!-- Buildings -->
+                <rect v-for="building in buildings" :key="building.id" :x="building.x" :y="building.y"
+                  :width="building.width" :height="building.height" fill="var(--text-muted)" opacity="0.5"
+                  stroke="var(--glass-border)" stroke-width="1" />
+
+                <!-- Waypoints -->
+                <g v-for="waypoint in waypoints" :key="waypoint.id" class="waypoint">
+                  <circle :cx="waypoint.x" :cy="waypoint.y" r="8" :fill="waypoint.color" opacity="0.3" />
+                  <circle :cx="waypoint.x" :cy="waypoint.y" r="4" :fill="waypoint.color" />
+                  <text :x="waypoint.x" :y="waypoint.y - 15" class="waypoint-label" fill="var(--text-primary)"
+                    text-anchor="middle">{{ waypoint.label }}</text>
+                </g>
+
+                <!-- Vehicle Path -->
+                <path v-if="vehiclePath.length > 0" :d="getPathString(vehiclePath)" fill="none"
+                  stroke="var(--color-primary)" stroke-width="2" opacity="0.5" stroke-dasharray="5,5" />
+
+                <!-- Vehicle -->
+                <g :transform="`translate(${vehicle.x}, ${vehicle.y}) rotate(${vehicle.angle})`" class="vehicle">
+                  <rect x="-15" y="-10" width="30" height="20" fill="var(--color-primary)"
+                    stroke="var(--color-primary-glow)" stroke-width="2" rx="3" />
+                  <polygon points="15,0 25,5 25,-5" fill="var(--color-primary)" />
+                  <circle cx="0" cy="0" r="30" fill="none" stroke="var(--color-primary)" stroke-width="1"
+                    opacity="0.3" class="vehicle-pulse" />
+                </g>
+              </g>
+            </svg>
+
+            <!-- Map Overlay Info -->
+            <div class="map-overlay">
+              <div class="overlay-top-map">
+                <div class="coord-display">
+                  <span class="coord-label">X</span>
+                  <span class="coord-value">{{ vehicle.x.toFixed(1) }}</span>
+                  <span class="coord-label">Y</span>
+                  <span class="coord-value">{{ vehicle.y.toFixed(1) }}</span>
+                  <span class="coord-label">θ</span>
+                  <span class="coord-value">{{ vehicle.angle.toFixed(0) }}°</span>
+                </div>
+              </div>
+              <div class="overlay-bottom-map">
+                <span class="zoom-level">ZOOM {{ (zoom * 100).toFixed(0) }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <!-- Right: Scan Info Panel -->
     <div class="live-right">
       <!-- Current Scan Info -->
@@ -202,6 +315,59 @@
         </div>
       </section>
 
+      <!-- Vehicle Status -->
+      <section class="panel status-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+              <circle cx="7" cy="17" r="2" />
+              <path d="M9 17h6" />
+              <circle cx="17" cy="17" r="2" />
+            </svg>
+            차량 상태
+          </div>
+          <span class="vehicle-status-badge" :class="vehicleStatus.mode.toLowerCase()">{{ vehicleStatus.mode }}</span>
+        </div>
+
+        <div class="panel-body">
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">속도</span>
+              <span class="status-value">{{ vehicleStatus.speed }}<small>km/h</small></span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">배터리</span>
+              <span class="status-value" :class="{ 'text-error': vehicleStatus.battery < 20 }">{{
+                vehicleStatus.battery }}<small>%</small></span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">목적지까지</span>
+              <span class="status-value">{{ vehicleStatus.distanceToTarget }}<small>m</small></span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">예상 도착</span>
+              <span class="status-value">{{ vehicleStatus.eta }}<small>초</small></span>
+            </div>
+          </div>
+
+          <div class="sensor-info">
+            <h3 class="sensor-title">센서 상태</h3>
+            <div class="sensor-grid">
+              <div v-for="sensor in sensors" :key="sensor.name" class="sensor-item">
+                <div class="sensor-header">
+                  <span class="sensor-name">{{ sensor.name }}</span>
+                  <span class="sensor-status" :class="sensor.status">{{ sensor.status === 'ok' ? 'OK' : 'ERROR'
+                    }}</span>
+                </div>
+                <div class="sensor-value">{{ sensor.value }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Scan History -->
       <section class="panel history-panel">
         <div class="panel-header">
@@ -251,6 +417,166 @@ const currentScan = ref(null)
 const scanHistory = ref([])
 
 let timeInterval = null
+
+// Map-related state
+const viewBox = ref({ x: 0, y: 0, width: 1000, height: 800 })
+const zoom = ref(1)
+const isPanning = ref(false)
+const panStart = ref({ x: 0, y: 0 })
+
+// Vehicle State
+const vehicle = ref({
+  x: 200,
+  y: 300,
+  angle: 0
+})
+
+const vehiclePath = ref([
+  { x: 200, y: 300 },
+])
+
+// Buildings
+const buildings = ref([
+  { id: 1, x: 150, y: 150, width: 100, height: 80 },
+  { id: 2, x: 650, y: 150, width: 120, height: 100 },
+  { id: 3, x: 150, y: 450, width: 90, height: 110 },
+  { id: 4, x: 700, y: 450, width: 100, height: 90 },
+])
+
+// Waypoints
+const waypoints = ref([
+  { id: 1, label: 'A', x: 200, y: 300, color: 'var(--color-success)' },
+  { id: 2, label: 'B', x: 500, y: 200, color: 'var(--color-warning)' },
+  { id: 3, label: 'C', x: 750, y: 300, color: 'var(--color-error)' },
+  { id: 4, label: 'D', x: 500, y: 600, color: 'var(--color-info)' },
+])
+
+const currentWaypointIndex = ref(0)
+
+// Vehicle Status
+const vehicleStatus = ref({
+  mode: 'AUTO',
+  speed: 12.5,
+  battery: 85,
+  distanceToTarget: 245,
+  eta: 78
+})
+
+// Sensors
+const sensors = ref([
+  { name: 'LIDAR', status: 'ok', value: '정상 (360°)' },
+  { name: 'Camera', status: 'ok', value: '정상 (1080p)' },
+  { name: 'GPS', status: 'ok', value: '정확도 ±2m' },
+  { name: 'IMU', status: 'ok', value: '정상' },
+])
+
+// Map functions
+const getPathString = (path) => {
+  if (path.length === 0) return ''
+  return path.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+}
+
+const zoomIn = () => {
+  zoom.value = Math.min(zoom.value * 1.2, 3)
+  updateViewBox()
+}
+
+const zoomOut = () => {
+  zoom.value = Math.max(zoom.value / 1.2, 0.5)
+  updateViewBox()
+}
+
+const resetView = () => {
+  zoom.value = 1
+  viewBox.value = { x: 0, y: 0, width: 1000, height: 800 }
+}
+
+const updateViewBox = () => {
+  const baseWidth = 1000
+  const baseHeight = 800
+  const newWidth = baseWidth / zoom.value
+  const newHeight = baseHeight / zoom.value
+
+  viewBox.value = {
+    x: vehicle.value.x - newWidth / 2,
+    y: vehicle.value.y - newHeight / 2,
+    width: newWidth,
+    height: newHeight
+  }
+}
+
+const handleWheel = (e) => {
+  const delta = e.deltaY > 0 ? 0.9 : 1.1
+  zoom.value = Math.max(0.5, Math.min(3, zoom.value * delta))
+  updateViewBox()
+}
+
+const startPan = (e) => {
+  isPanning.value = true
+  panStart.value = { x: e.clientX, y: e.clientY }
+}
+
+const handlePan = (e) => {
+  if (!isPanning.value) return
+
+  const dx = (e.clientX - panStart.value.x) * (viewBox.value.width / 1000)
+  const dy = (e.clientY - panStart.value.y) * (viewBox.value.height / 800)
+
+  viewBox.value.x -= dx
+  viewBox.value.y -= dy
+
+  panStart.value = { x: e.clientX, y: e.clientY }
+}
+
+const endPan = () => {
+  isPanning.value = false
+}
+
+// Vehicle simulation
+let simulationInterval = null
+
+const simulateVehicleMovement = () => {
+  if (currentWaypointIndex.value >= waypoints.value.length) {
+    currentWaypointIndex.value = 0
+    vehiclePath.value = [{ x: waypoints.value[0].x, y: waypoints.value[0].y }]
+  }
+
+  const target = waypoints.value[currentWaypointIndex.value]
+  const dx = target.x - vehicle.value.x
+  const dy = target.y - vehicle.value.y
+  const distance = Math.sqrt(dx * dx + dy * dy)
+
+  if (distance < 5) {
+    currentWaypointIndex.value++
+    if (currentWaypointIndex.value < waypoints.value.length) {
+      const nextTarget = waypoints.value[currentWaypointIndex.value]
+      const nextDx = nextTarget.x - vehicle.value.x
+      const nextDy = nextTarget.y - vehicle.value.y
+      vehicleStatus.value.distanceToTarget = Math.sqrt(nextDx * nextDx + nextDy * nextDy).toFixed(0)
+      vehicleStatus.value.eta = (vehicleStatus.value.distanceToTarget / (vehicleStatus.value.speed / 3.6)).toFixed(0)
+    }
+    return
+  }
+
+  const speed = 2
+  const vx = (dx / distance) * speed
+  const vy = (dy / distance) * speed
+
+  vehicle.value.x += vx
+  vehicle.value.y += vy
+  vehicle.value.angle = Math.atan2(dy, dx) * (180 / Math.PI)
+
+  vehiclePath.value.push({ x: vehicle.value.x, y: vehicle.value.y })
+  if (vehiclePath.value.length > 100) {
+    vehiclePath.value.shift()
+  }
+
+  // Update status
+  vehicleStatus.value.distanceToTarget = distance.toFixed(0)
+  vehicleStatus.value.eta = (distance / (vehicleStatus.value.speed / 3.6)).toFixed(0)
+
+  updateViewBox()
+}
 
 // 시간 업데이트
 const updateTime = () => {
@@ -367,11 +693,15 @@ onMounted(() => {
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
   loadHistory()
+  simulationInterval = setInterval(simulateVehicleMovement, 50)
 })
 
 onUnmounted(() => {
   if (timeInterval) {
     clearInterval(timeInterval)
+  }
+  if (simulationInterval) {
+    clearInterval(simulationInterval)
   }
 })
 </script>
@@ -384,24 +714,28 @@ onUnmounted(() => {
 .live-view {
   height: 100%;
   padding: 20px 24px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 380px;
   gap: 24px;
   overflow: hidden;
 }
 
 .live-left {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.live-center {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
 .live-right {
-  width: 380px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  flex-shrink: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -426,8 +760,7 @@ onUnmounted(() => {
 .video-panel {
   flex: 1;
   min-height: 0;
-  background: rgba(15, 23, 42, 0.6);
-  /* Darker for video focus */
+  background: var(--video-panel-bg);
 }
 
 .scan-panel {
@@ -487,7 +820,7 @@ onUnmounted(() => {
   background: rgba(99, 102, 241, 0.1);
   border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 6px;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 10px var(--color-primary-glow);
 }
 
 .cam-dot {
@@ -582,8 +915,8 @@ onUnmounted(() => {
 
 .timestamp {
   padding: 6px 14px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--overlay-darker);
+  border: 1px solid var(--glass-border);
   border-radius: 4px;
   font-size: 14px;
   color: var(--color-primary);
@@ -595,7 +928,7 @@ onUnmounted(() => {
 .resolution,
 .fps {
   padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-darker);
   border-radius: 4px;
   font-size: 11px;
   font-family: var(--font-family-mono);
@@ -673,7 +1006,7 @@ onUnmounted(() => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--overlay-lighter);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   color: var(--text-secondary);
@@ -682,9 +1015,9 @@ onUnmounted(() => {
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--overlay-light);
+  color: var(--text-primary);
+  border-color: var(--glass-border-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -794,7 +1127,7 @@ onUnmounted(() => {
   color: var(--text-muted);
   text-align: center;
   gap: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--overlay-light);
   border-radius: 12px;
   border: 1px dashed var(--glass-border);
 }
@@ -857,8 +1190,9 @@ onUnmounted(() => {
 }
 
 .scan-status.status-ready {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--overlay-light);
   color: var(--text-muted);
+  border: 1px solid var(--glass-border);
 }
 
 .scan-status.status-moving {
@@ -891,15 +1225,15 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--overlay-light);
   border-radius: 8px;
   border: 1px solid transparent;
   transition: all 0.2s;
 }
 
 .detail-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--overlay-lighter);
+  border-color: var(--glass-border);
 }
 
 .detail-label {
@@ -977,7 +1311,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--overlay-light);
   border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
@@ -985,8 +1319,8 @@ onUnmounted(() => {
 }
 
 .history-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--overlay-lighter);
+  border-color: var(--glass-border);
   transform: translateX(4px);
 }
 
@@ -1025,12 +1359,297 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .live-view {
-    flex-direction: column;
+/* Map Panel Styles */
+.map-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.map-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--overlay-dark);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.map-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.map-canvas:active {
+  cursor: grabbing;
+}
+
+/* Vehicle Animation */
+.vehicle {
+  transition: transform 0.05s linear;
+}
+
+.vehicle-pulse {
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0.5;
+    r: 20;
   }
 
+  100% {
+    opacity: 0;
+    r: 40;
+  }
+}
+
+/* Map Overlay */
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.overlay-top-map {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.overlay-bottom-map {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.coord-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--overlay-darker);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.coord-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.coord-value {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+  color: var(--color-primary);
+}
+
+.zoom-level {
+  padding: 6px 12px;
+  background: var(--overlay-darker);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+  color: var(--text-muted);
+  backdrop-filter: blur(4px);
+}
+
+/* Waypoint Labels */
+.waypoint-label {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-family-mono);
+}
+
+/* Zoom Buttons */
+.btn-zoom,
+.btn-reset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--overlay-lighter);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-zoom:hover,
+.btn-reset:hover {
+  background: var(--overlay-light);
+  color: var(--text-primary);
+  border-color: var(--glass-border-hover);
+  transform: translateY(-2px);
+}
+
+/* Vehicle Status Panel */
+.status-panel {
+  flex-shrink: 0;
+}
+
+.vehicle-status-badge {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.vehicle-status-badge.auto {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+}
+
+.vehicle-status-badge.manual {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Status Grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--overlay-light);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.status-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-value {
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--font-family-mono);
+  color: var(--text-primary);
+}
+
+.status-value small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+/* Sensor Info */
+.sensor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sensor-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.sensor-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sensor-item {
+  padding: 10px 12px;
+  background: var(--overlay-light);
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+}
+
+.sensor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.sensor-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sensor-status {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.sensor-status.ok {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.sensor-status.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+}
+
+.sensor-value {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .live-view {
+    grid-template-columns: 1fr 1fr 320px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .live-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  .live-left,
+  .live-center,
   .live-right {
     width: 100%;
     height: auto;
@@ -1038,7 +1657,12 @@ onUnmounted(() => {
 
   .video-container {
     aspect-ratio: 16/9;
-    max-height: 50vh;
+    max-height: 40vh;
+  }
+
+  .map-container {
+    aspect-ratio: 16/9;
+    max-height: 40vh;
   }
 }
 </style>

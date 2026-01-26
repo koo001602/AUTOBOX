@@ -49,24 +49,36 @@
   /* Backgrounds - Deep Space */
   --bg-base: #0f172a; /* Fallback */
   --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  
+
   /* Glass Surfaces */
   --glass-panel: rgba(30, 41, 59, 0.6);
   --glass-header: rgba(15, 23, 42, 0.7);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-hover: rgba(255, 255, 255, 0.15);
   --glass-shine: rgba(255, 255, 255, 0.05);
-  
+
+  /* Transparent Overlays */
+  --overlay-dark: rgba(0, 0, 0, 0.2);
+  --overlay-darker: rgba(0, 0, 0, 0.3);
+  --overlay-light: rgba(255, 255, 255, 0.03);
+  --overlay-lighter: rgba(255, 255, 255, 0.05);
+
+  /* Table Header */
+  --table-header-bg: rgba(15, 23, 42, 0.8);
+
+  /* Video Panel */
+  --video-panel-bg: rgba(15, 23, 42, 0.6);
+
   /* Text */
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --text-inverse: #0f172a;
-  
+
   /* Shadows */
   --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   --shadow-neon: 0 0 15px var(--color-primary-glow);
-  
+
   /* Backdrop Filter */
   --blur-amount: 12px;
 }
@@ -78,24 +90,36 @@
   /* Backgrounds */
   --bg-base: #f0f4f8;
   --bg-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  
+
   /* Glass Surfaces */
   --glass-panel: rgba(255, 255, 255, 0.7);
   --glass-header: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.4);
-  --glass-border-hover: rgba(255, 255, 255, 0.6);
-  --glass-shine: rgba(255, 255, 255, 0.2);
-  
+  --glass-border: rgba(226, 232, 240, 0.6);
+  --glass-border-hover: rgba(203, 213, 225, 0.8);
+  --glass-shine: rgba(255, 255, 255, 0.5);
+
+  /* Transparent Overlays */
+  --overlay-dark: rgba(148, 163, 184, 0.1);
+  --overlay-darker: rgba(100, 116, 139, 0.15);
+  --overlay-light: rgba(255, 255, 255, 0.5);
+  --overlay-lighter: rgba(255, 255, 255, 0.7);
+
+  /* Table Header */
+  --table-header-bg: rgba(241, 245, 249, 0.9);
+
+  /* Video Panel */
+  --video-panel-bg: rgba(241, 245, 249, 0.8);
+
   /* Text */
   --text-primary: #1e293b;
   --text-secondary: #475569;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
-  
+
   /* Shadows */
   --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
   --shadow-neon: 0 0 10px rgba(99, 102, 241, 0.2);
-  
+
   --blur-amount: 10px;
 }
 

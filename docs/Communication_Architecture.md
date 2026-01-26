@@ -166,7 +166,7 @@ scp mqtt/certs/client.key pi@<RPI_IP>:/home/pi/autobox/certs/
 
 ```bash
 # 설정 파일 복사
-sudo cp Embedded/raspberry-pi/mosquitto-bridge.conf /etc/mosquitto/conf.d/bridge.conf
+sudo cp embedded/raspberry-pi/mosquitto-bridge.conf /etc/mosquitto/conf.d/bridge.conf
 
 # EC2 IP 및 비밀번호 수정
 sudo nano /etc/mosquitto/conf.d/bridge.conf

@@ -238,6 +238,56 @@ export const fetchSensorStatus = () => {
   return apiClient.get('/sensors/status')
 }
 
+// ============== 라즈베리파이 명령 전송 API ==============
+
+// 19. 박스 개수 명령 전송 (라즈베리파이로 MQTT 전송)
+export const sendBoxCountCommand = (boxCount, vehicleId = 'AGV-001', priority = 'normal') => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          command_id: `CMD-MOCK-${Date.now()}`,
+          box_count: boxCount,
+          vehicle_id: vehicleId,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        },
+        message: `박스 개수 ${boxCount}개 명령이 전송되었습니다.`
+      }
+    })
+  }
+  return apiClient.post('/vehicle/command/box-count', {
+    box_count: boxCount,
+    vehicle_id: vehicleId,
+    priority: priority
+  })
+}
+
+// 20. 차량 제어 명령 전송 (start, stop, pause, resume, emergency_stop)
+export const sendVehicleCommand = (command, vehicleId = 'AGV-001', parameters = {}) => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          command_id: `CMD-MOCK-${Date.now()}`,
+          command: command,
+          vehicle_id: vehicleId,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        },
+        message: `'${command}' 명령이 전송되었습니다.`
+      }
+    })
+  }
+  return apiClient.post('/vehicle/command', {
+    command: command,
+    vehicle_id: vehicleId,
+    parameters: parameters
+  })
+}
+
 // 목업 모드 여부 내보내기 (UI에서 표시용)
 export const getMockMode = () => isMockMode
 

@@ -8,6 +8,7 @@ from app.routers.stats import router as stats_router
 from app.routers.recognition import router as recognition_router
 from app.routers.cameras import router as cameras_router
 from app.routers.websocket import router as websocket_router
+from app.routers.vehicle import router as vehicle_router
 
 __all__ = [
     "waybills_router",
@@ -18,4 +19,5 @@ __all__ = [
     "recognition_router",
     "cameras_router",
     "websocket_router",
+    "vehicle_router",
 ]

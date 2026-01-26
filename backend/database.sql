@@ -21,6 +21,9 @@ DROP TABLE IF EXISTS device_status;
 DROP TABLE IF EXISTS region;
 DROP TABLE IF EXISTS camera;
 DROP TABLE IF EXISTS alert;
+DROP TABLE IF EXISTS vehicle_position;
+DROP TABLE IF EXISTS map_data;
+DROP TABLE IF EXISTS sensor_status;
 
 CREATE TABLE logistics_item (
   tracking_number VARCHAR(50) NOT NULL COMMENT '운송장 번호 (고유값)',
@@ -154,3 +157,113 @@ ALTER TABLE device_status
 
 ALTER TABLE scan_log
   ADD CONSTRAINT chk_sl_confidence CHECK (confidence_score IS NULL OR (confidence_score BETWEEN 0 AND 100));
+
+
+/* =========================================================
+   7) VehiclePosition (차량 위치)
+   - 실시간 차량 위치 정보 저장
+   - vehicle_id별 최신 1행만 필요할 수 있음 (UPSERT 방식)
+   ========================================================= */
+
+CREATE TABLE vehicle_position (
+  id              BIGINT NOT NULL AUTO_INCREMENT COMMENT '위치 레코드 ID',
+  vehicle_id      VARCHAR(50) NOT NULL COMMENT '차량 ID',
+  x               FLOAT NOT NULL COMMENT 'X 좌표',
+  y               FLOAT NOT NULL COMMENT 'Y 좌표',
+  angle           FLOAT NOT NULL DEFAULT 0 COMMENT '차량 방향 (0-360도)',
+  speed           FLOAT NOT NULL DEFAULT 0 COMMENT '속도 (km/h)',
+  battery         INT NOT NULL DEFAULT 100 COMMENT '배터리 레벨 (0-100)',
+  mode            VARCHAR(20) NOT NULL DEFAULT 'IDLE' COMMENT '운행 모드 (AUTO, MANUAL, IDLE)',
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 업데이트',
+  PRIMARY KEY (id),
+  INDEX idx_vp_vehicle_id (vehicle_id),
+  INDEX idx_vp_updated_at (updated_at)
+) ENGINE=InnoDB COMMENT='차량 위치 정보';
+
+
+/* =========================================================
+   8) MapData (맵 데이터)
+   - 웨이포인트, 건물, 장애물 등 정적 맵 정보 저장
+   - JSON 타입으로 유연한 데이터 구조 지원
+   ========================================================= */
+
+CREATE TABLE map_data (
+  id              BIGINT NOT NULL AUTO_INCREMENT COMMENT '맵 데이터 ID',
+  map_id          VARCHAR(50) NOT NULL COMMENT '맵 식별자',
+  name            VARCHAR(100) NULL COMMENT '맵 이름',
+  waypoints       JSON NULL COMMENT '웨이포인트 배열 (JSON)',
+  buildings       JSON NULL COMMENT '건물/장애물 배열 (JSON)',
+  obstacles       JSON NULL COMMENT '동적 장애물 배열 (JSON)',
+  roads           JSON NULL COMMENT '도로 경로 배열 (JSON)',
+  zones           JSON NULL COMMENT '작업 구역 배열 (JSON)',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시간',
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시간',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_map_id (map_id),
+  INDEX idx_md_map_id (map_id)
+) ENGINE=InnoDB COMMENT='맵 데이터';
+
+
+/* =========================================================
+   9) SensorStatus (센서 상태)
+   - LIDAR, Camera, GPS, IMU 등 센서 실시간 상태 저장
+   ========================================================= */
+
+CREATE TABLE sensor_status (
+  id              BIGINT NOT NULL AUTO_INCREMENT COMMENT '센서 상태 ID',
+  vehicle_id      VARCHAR(50) NOT NULL COMMENT '차량 ID',
+  sensor_name     VARCHAR(50) NOT NULL COMMENT '센서 이름 (LIDAR, Camera, GPS, IMU)',
+  sensor_type     VARCHAR(50) NULL COMMENT '센서 유형',
+  status          VARCHAR(20) NOT NULL DEFAULT 'ok' COMMENT '상태 (ok, warning, error, offline)',
+  health          INT NULL DEFAULT 100 COMMENT '센서 상태 (0-100%)',
+  value           VARCHAR(200) NULL COMMENT '센서 값 또는 설명',
+  data            JSON NULL COMMENT '센서 상세 데이터 (JSON)',
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 업데이트',
+  PRIMARY KEY (id),
+  INDEX idx_ss_vehicle_id (vehicle_id),
+  INDEX idx_ss_vehicle_sensor (vehicle_id, sensor_name),
+  INDEX idx_ss_updated_at (updated_at)
+) ENGINE=InnoDB COMMENT='센서 상태';
+
+ALTER TABLE vehicle_position
+  ADD CONSTRAINT chk_vp_battery CHECK (battery BETWEEN 0 AND 100);
+
+ALTER TABLE sensor_status
+  ADD CONSTRAINT chk_ss_health CHECK (health IS NULL OR (health BETWEEN 0 AND 100));
+
+
+/* =========================================================
+   10) 초기 데이터 삽입 (맵 데이터, 차량 위치, 센서 상태)
+   ========================================================= */
+
+-- 기본 맵 데이터 삽입
+INSERT INTO map_data (map_id, name, waypoints, buildings, obstacles, roads, zones) VALUES (
+  'default',
+  '물류 센터 기본 맵',
+  '[
+    {"id": 1, "label": "A", "x": 200, "y": 300, "color": "#10b981", "type": "pickup"},
+    {"id": 2, "label": "B", "x": 500, "y": 200, "color": "#f59e0b", "type": "dropoff"},
+    {"id": 3, "label": "C", "x": 750, "y": 300, "color": "#ef4444", "type": "dropoff"},
+    {"id": 4, "label": "D", "x": 500, "y": 600, "color": "#3b82f6", "type": "charging"}
+  ]',
+  '[
+    {"id": 1, "x": 150, "y": 150, "width": 100, "height": 80, "type": "building"},
+    {"id": 2, "x": 650, "y": 150, "width": 120, "height": 100, "type": "building"},
+    {"id": 3, "x": 150, "y": 450, "width": 90, "height": 110, "type": "building"},
+    {"id": 4, "x": 700, "y": 450, "width": 100, "height": 90, "type": "building"}
+  ]',
+  '[]',
+  '[]',
+  '[]'
+);
+
+-- 기본 차량 위치 삽입
+INSERT INTO vehicle_position (vehicle_id, x, y, angle, speed, battery, mode) VALUES
+  ('AGV-001', 450.0, 350.0, 0, 0, 100, 'IDLE');
+
+-- 기본 센서 상태 삽입
+INSERT INTO sensor_status (vehicle_id, sensor_name, sensor_type, status, health, value) VALUES
+  ('AGV-001', 'LIDAR', 'lidar', 'ok', 100, '정상 (360°)'),
+  ('AGV-001', 'Camera', 'rgb_camera', 'ok', 100, '정상 (1080p)'),
+  ('AGV-001', 'GPS', 'gnss', 'ok', 95, '정확도 ±2m'),
+  ('AGV-001', 'IMU', 'inertial', 'ok', 100, '정상');

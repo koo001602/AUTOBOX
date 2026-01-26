@@ -213,12 +213,110 @@ def handle_command(topic: str, data: dict):
         print("Reporting status...")
 
 
+def handle_box_count_command(topic: str, data: dict):
+    """
+    박스 개수 명령 처리 핸들러
+    
+    프론트엔드에서 입력한 박스 개수를 처리합니다.
+    토픽: autobox/command/box-count
+    
+    수신 데이터 형식:
+    {
+        "command_id": "CMD-XXXXXXXX",
+        "command_type": "box_count",
+        "box_count": 10,
+        "vehicle_id": "AGV-001",
+        "priority": "normal",
+        "timestamp": "2026-01-26T12:00:00"
+    }
+    """
+    print(f"\n{'='*50}")
+    print("📦 박스 개수 명령 수신!")
+    print(f"{'='*50}")
+    
+    command_id = data.get("command_id", "UNKNOWN")
+    box_count = data.get("box_count", 0)
+    vehicle_id = data.get("vehicle_id", "AGV-001")
+    priority = data.get("priority", "normal")
+    timestamp = data.get("timestamp", "")
+    
+    print(f"  명령 ID: {command_id}")
+    print(f"  박스 개수: {box_count}개")
+    print(f"  차량 ID: {vehicle_id}")
+    print(f"  우선순위: {priority}")
+    print(f"  전송 시간: {timestamp}")
+    print(f"{'='*50}")
+    
+    # TODO: 실제 하드웨어 제어 로직 구현
+    # 예: 컨베이어 벨트 제어, 로봇 암 동작 등
+    
+    # 처리 완료 응답 발행 (선택사항)
+    # client.publish("response/box-count", {
+    #     "command_id": command_id,
+    #     "status": "received",
+    #     "box_count": box_count
+    # })
+    
+    return box_count
+
+
+def handle_vehicle_command(topic: str, data: dict):
+    """
+    차량 제어 명령 처리 핸들러
+    
+    차량의 시작, 정지, 일시정지 등 제어 명령을 처리합니다.
+    토픽: autobox/command/vehicle
+    
+    수신 데이터 형식:
+    {
+        "command_id": "CMD-XXXXXXXX",
+        "command_type": "vehicle_control",
+        "command": "start",  // start, stop, pause, resume, emergency_stop
+        "vehicle_id": "AGV-001",
+        "parameters": {},
+        "timestamp": "2026-01-26T12:00:00"
+    }
+    """
+    print(f"\n{'='*50}")
+    print("🚗 차량 제어 명령 수신!")
+    print(f"{'='*50}")
+    
+    command_id = data.get("command_id", "UNKNOWN")
+    command = data.get("command", "")
+    vehicle_id = data.get("vehicle_id", "AGV-001")
+    parameters = data.get("parameters", {})
+    timestamp = data.get("timestamp", "")
+    
+    print(f"  명령 ID: {command_id}")
+    print(f"  명령: {command}")
+    print(f"  차량 ID: {vehicle_id}")
+    print(f"  파라미터: {parameters}")
+    print(f"  전송 시간: {timestamp}")
+    print(f"{'='*50}")
+    
+    # TODO: 실제 차량 제어 로직 구현
+    if command == "start":
+        print("  ▶️ 차량 시작...")
+    elif command == "stop":
+        print("  ⏹️ 차량 정지...")
+    elif command == "pause":
+        print("  ⏸️ 차량 일시정지...")
+    elif command == "resume":
+        print("  ▶️ 차량 재개...")
+    elif command == "emergency_stop":
+        print("  🚨 긴급 정지!")
+    
+    return command
+
+
 def main():
     """메인 함수"""
     client = AutoBoxMQTTClient()
     
     # 명령 핸들러 등록
     client.subscribe("command/#", handle_command)
+    client.subscribe("command/box-count", handle_box_count_command)
+    client.subscribe("command/vehicle", handle_vehicle_command)
     
     # 연결
     if not client.connect():
@@ -241,7 +339,16 @@ def main():
         })
         
         # 메시지 대기
+        print("\n" + "="*50)
+        print("🚀 AutoBox MQTT Client 시작됨")
+        print("="*50)
+        print("구독 중인 토픽:")
+        print("  - autobox/command/#")
+        print("  - autobox/command/box-count (박스 개수 명령)")
+        print("  - autobox/command/vehicle (차량 제어 명령)")
+        print("="*50)
         print("\nWaiting for messages... (Ctrl+C to exit)")
+        
         while True:
             time.sleep(1)
             

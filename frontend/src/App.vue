@@ -27,6 +27,8 @@ onMounted(() => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: var(--bg-gradient);
+  color: var(--text-primary);
 }
 </style>
 
@@ -37,7 +39,8 @@ onMounted(() => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: var(--bg-base);
+  /* Glass effect on top of gradient */
+  background: transparent;
 }
 
 .main-content {
@@ -45,5 +48,7 @@ onMounted(() => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 </style>

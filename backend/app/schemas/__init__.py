@@ -19,6 +19,24 @@ from app.schemas.region import RegionOut, RegionCreateRequest, RegionStatusReque
 from app.schemas.device import DeviceStatusOut, DeviceStatusUpdateRequest
 from app.schemas.alert import AlertOut, AlertCreateRequest
 from app.schemas.camera import CameraOut, CameraStatusRequest, LatestRecognitionResponse
+from app.schemas.vehicle import (
+    VehiclePositionData,
+    VehiclePositionResponse,
+    VehiclePositionUpdateRequest,
+    MapDataContent,
+    MapDataResponse,
+    Waypoint,
+    Building,
+    SensorInfo,
+    SensorStatusData,
+    SensorStatusResponse,
+    SensorStatusUpdateRequest,
+    BoxCountCommandRequest,
+    BoxCountCommandData,
+    BoxCountCommandResponse,
+    VehicleCommandRequest,
+    VehicleCommandResponse,
+)
 
 __all__ = [
     # Common
@@ -52,4 +70,22 @@ __all__ = [
     "CameraOut",
     "CameraStatusRequest",
     "LatestRecognitionResponse",
+    # Vehicle
+    "VehiclePositionData",
+    "VehiclePositionResponse",
+    "VehiclePositionUpdateRequest",
+    "MapDataContent",
+    "MapDataResponse",
+    "Waypoint",
+    "Building",
+    "SensorInfo",
+    "SensorStatusData",
+    "SensorStatusResponse",
+    "SensorStatusUpdateRequest",
+    # Commands
+    "BoxCountCommandRequest",
+    "BoxCountCommandData",
+    "BoxCountCommandResponse",
+    "VehicleCommandRequest",
+    "VehicleCommandResponse",
 ]

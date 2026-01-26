@@ -472,3 +472,168 @@ LEFT JOIN scan_log sl ON sl.id = li.latest_scan_id
 * 트래픽/데이터 커지면 `latest_scan_id` 방식으로 최적화
 
 ---
+
+## 6) 실시간 모니터링 테이블 (신규 추가)
+
+### 6.1 VehiclePosition (차량 위치)
+
+```sql
+-- MySQL 8+
+CREATE TABLE vehicle_position (
+  id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+  vehicle_id      VARCHAR(50) NOT NULL COMMENT '차량 ID',
+  x               FLOAT NOT NULL COMMENT 'X 좌표',
+  y               FLOAT NOT NULL COMMENT 'Y 좌표',
+  angle           FLOAT NOT NULL DEFAULT 0 COMMENT '차량 방향 (0-360도)',
+  speed           FLOAT NOT NULL DEFAULT 0 COMMENT '속도 (km/h)',
+  battery         INT NOT NULL DEFAULT 100 COMMENT '배터리 레벨 (0-100)',
+  mode            VARCHAR(20) NOT NULL DEFAULT 'IDLE' COMMENT '운행 모드 (AUTO, MANUAL, IDLE)',
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_vp_vehicle_id ON vehicle_position (vehicle_id);
+CREATE INDEX idx_vp_updated_at ON vehicle_position (updated_at);
+
+ALTER TABLE vehicle_position
+  ADD CONSTRAINT chk_vp_battery CHECK (battery BETWEEN 0 AND 100);
+```
+
+> **참고**: 차량별 최신 위치만 필요하므로 UPSERT 방식으로 업데이트합니다.
+
+---
+
+### 6.2 MapData (맵 데이터)
+
+```sql
+-- MySQL 8+
+CREATE TABLE map_data (
+  id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+  map_id          VARCHAR(50) NOT NULL UNIQUE COMMENT '맵 식별자',
+  name            VARCHAR(100) NULL COMMENT '맵 이름',
+  waypoints       JSON NULL COMMENT '웨이포인트 배열 (JSON)',
+  buildings       JSON NULL COMMENT '건물/장애물 배열 (JSON)',
+  obstacles       JSON NULL COMMENT '동적 장애물 배열 (JSON)',
+  roads           JSON NULL COMMENT '도로 경로 배열 (JSON)',
+  zones           JSON NULL COMMENT '작업 구역 배열 (JSON)',
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_md_map_id ON map_data (map_id);
+```
+
+**JSON 데이터 형식 예시**:
+
+```json
+// waypoints
+[
+  { "id": 1, "label": "A", "x": 200, "y": 300, "color": "#10b981", "type": "pickup" },
+  { "id": 2, "label": "B", "x": 500, "y": 200, "color": "#f59e0b", "type": "dropoff" }
+]
+
+// buildings
+[
+  { "id": 1, "x": 150, "y": 150, "width": 100, "height": 80, "type": "building" }
+]
+```
+
+---
+
+### 6.3 SensorStatus (센서 상태)
+
+```sql
+-- MySQL 8+
+CREATE TABLE sensor_status (
+  id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+  vehicle_id      VARCHAR(50) NOT NULL COMMENT '차량 ID',
+  sensor_name     VARCHAR(50) NOT NULL COMMENT '센서 이름 (LIDAR, Camera, GPS, IMU)',
+  sensor_type     VARCHAR(50) NULL COMMENT '센서 유형',
+  status          VARCHAR(20) NOT NULL DEFAULT 'ok' COMMENT '상태 (ok, warning, error, offline)',
+  health          INT NULL DEFAULT 100 COMMENT '센서 상태 (0-100%)',
+  value           VARCHAR(200) NULL COMMENT '센서 값 또는 설명',
+  data            JSON NULL COMMENT '센서 상세 데이터 (JSON)',
+  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ss_vehicle_id ON sensor_status (vehicle_id);
+CREATE INDEX idx_ss_vehicle_sensor ON sensor_status (vehicle_id, sensor_name);
+CREATE INDEX idx_ss_updated_at ON sensor_status (updated_at);
+
+ALTER TABLE sensor_status
+  ADD CONSTRAINT chk_ss_health CHECK (health IS NULL OR (health BETWEEN 0 AND 100));
+```
+
+---
+
+### 6.4 초기 데이터 삽입
+
+```sql
+-- 기본 맵 데이터
+INSERT INTO map_data (map_id, name, waypoints, buildings, obstacles) VALUES (
+  'default',
+  '물류 센터 기본 맵',
+  '[
+    {"id": 1, "label": "A", "x": 200, "y": 300, "color": "#10b981", "type": "pickup"},
+    {"id": 2, "label": "B", "x": 500, "y": 200, "color": "#f59e0b", "type": "dropoff"},
+    {"id": 3, "label": "C", "x": 750, "y": 300, "color": "#ef4444", "type": "dropoff"},
+    {"id": 4, "label": "D", "x": 500, "y": 600, "color": "#3b82f6", "type": "charging"}
+  ]',
+  '[
+    {"id": 1, "x": 150, "y": 150, "width": 100, "height": 80, "type": "building"},
+    {"id": 2, "x": 650, "y": 150, "width": 120, "height": 100, "type": "building"},
+    {"id": 3, "x": 150, "y": 450, "width": 90, "height": 110, "type": "building"},
+    {"id": 4, "x": 700, "y": 450, "width": 100, "height": 90, "type": "building"}
+  ]',
+  '[]'
+);
+
+-- 기본 차량 위치
+INSERT INTO vehicle_position (vehicle_id, x, y, angle, speed, battery, mode) VALUES
+  ('AGV-001', 450.0, 350.0, 0, 0, 100, 'IDLE');
+
+-- 기본 센서 상태
+INSERT INTO sensor_status (vehicle_id, sensor_name, sensor_type, status, health, value) VALUES
+  ('AGV-001', 'LIDAR', 'lidar', 'ok', 100, '정상 (360°)'),
+  ('AGV-001', 'Camera', 'rgb_camera', 'ok', 100, '정상 (1080p)'),
+  ('AGV-001', 'GPS', 'gnss', 'ok', 95, '정확도 ±2m'),
+  ('AGV-001', 'IMU', 'inertial', 'ok', 100, '정상');
+```
+
+---
+
+## 7) 전체 ERD 요약 (업데이트됨)
+
+```
+┌─────────────────────┐     ┌─────────────────────┐
+│   logistics_item    │────▶│      scan_log       │
+│   (tracking_number) │ 1:N │  (id, tracking_no)  │
+└─────────────────────┘     └─────────────────────┘
+          │
+          ▼
+┌─────────────────────┐
+│     waybill_map     │
+│ (waybill_id ↔ TRK)  │
+└─────────────────────┘
+
+┌─────────────────────┐     ┌─────────────────────┐
+│   device_status     │     │   vehicle_position  │
+│     (device_id)     │     │    (vehicle_id)     │
+└─────────────────────┘     └─────────────────────┘
+
+┌─────────────────────┐     ┌─────────────────────┐
+│     map_data        │     │   sensor_status     │
+│     (map_id)        │     │ (vehicle_id, name)  │
+└─────────────────────┘     └─────────────────────┘
+
+┌─────────────────────┐     ┌─────────────────────┐
+│      region         │     │       alert         │
+│    (region_id)      │     │     (alert_id)      │
+└─────────────────────┘     └─────────────────────┘
+
+┌─────────────────────┐
+│      camera         │
+│    (camera_id)      │
+└─────────────────────┘
+```
+
+---

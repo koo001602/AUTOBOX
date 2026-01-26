@@ -2,347 +2,316 @@
 
 ## 개요
 
-AutoBox 시스템은 라즈베리파이(Edge Device)와 EC2 서버(Cloud Backend) 간의 양방향 통신을 지원합니다.
+AutoBox 시스템은 **Edge-Cloud 하이브리드 아키텍처**를 사용하여 현장(라즈베리파이 + 오린나노)과 클라우드(EC2) 간의 안전한 양방향 통신을 지원합니다.
 
 ## 시스템 구성도
 
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│                           데이터아키텍처                                   │
-└────────────────────────────────────────────────────────────────────────────┘
-
-                    MQTT (Publish)                 REST API
-┌──────────────┐  ──────────────────▶  ┌──────────────────────────────────┐
-│              │                       │           EC2 Server             │
-│ 라즈베리파이 │                       │  ┌────────────┐  ┌────────────┐  │
-│              │                       │  │  Backend   │  │  Frontend  │  │
-│ ┌──────────┐ │                       │  │  (FastAPI) │  │  (Vue.js)  │  │
-│ │  MQTT    │ │                       │  │  :8000     │  │  :80       │  │
-│ │  Broker  │ │  ◀──────────────────  │  └────────────┘  └────────────┘  │
-│ │  :1883   │ │      REST API         │                                  │
-│ └──────────┘ │                       │         │                        │
-│              │                       │         ▼                        │
-│ ┌──────────┐ │                       │  ┌────────────────────────────┐  │
-│ │   REST   │ │                       │  │      Azure MySQL           │  │
-│ │  Server  │ │                       │  │  (External Database)       │  │
-│ │  :5000   │ │                       │  └────────────────────────────┘  │
-│ └──────────┘ │                       │                                  │
-└──────────────┘                       └──────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           현장 (로컬 네트워크)                               │
+│                                                                             │
+│  ┌──────────────┐      로컬 MQTT       ┌───────────────────────────────┐   │
+│  │  오린 나노   │ ◀───────────────────▶│        라즈베리파이           │   │
+│  │ (자율주행차) │     localhost:1883   │                               │   │
+│  └──────────────┘                      │  ┌─────────────────────────┐  │   │
+│                                        │  │  로컬 Mosquitto 브로커  │  │   │
+│                                        │  │      (Port 1883)        │  │   │
+│                                        │  └───────────┬─────────────┘  │   │
+│                                        │              │                │   │
+│                                        │              ▼                │   │
+│                                        │  ┌─────────────────────────┐  │   │
+│                                        │  │     Bridge Module       │  │   │
+│                                        │  │  (EC2로 메시지 전달)    │  │   │
+│                                        │  └───────────┬─────────────┘  │   │
+│                                        └──────────────┼────────────────┘   │
+└───────────────────────────────────────────────────────┼─────────────────────┘
+                                                        │
+                                           TLS 8883 (Outbound 연결)
+                                           ✓ NAT/방화벽 통과
+                                           ✓ 포트포워딩 불필요
+                                                        │
+                                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              EC2 (클라우드)                                  │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                   Mosquitto Broker (autobox-mqtt)                    │   │
+│  │                                                                      │   │
+│  │   Port 1883: 내부용 (Docker 네트워크, 비TLS)                         │   │
+│  │   Port 8883: 외부용 (라즈베리파이 연결, TLS 암호화)                  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                    │                                       │
+│                                    ▼                                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                        │
+│  │   Backend   │  │  Frontend   │  │   MySQL     │                        │
+│  │  (FastAPI)  │  │  (Vue.js)   │  │  (Azure)    │                        │
+│  │   :8000     │  │    :80      │  │             │                        │
+│  └─────────────┘  └─────────────┘  └─────────────┘                        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## 아키텍처 특징
+
+### Edge-Cloud 하이브리드 구조
+
+| 계층 | 위치 | 역할 | 장점 |
+|------|------|------|------|
+| **Edge** | 라즈베리파이 | 로컬 브로커 + 브릿지 | 저지연 통신, 오프라인 동작 |
+| **Cloud** | EC2 | 중앙 브로커 + 백엔드 | 데이터 수집, 모니터링, 분석 |
+
+### 보안 기능
+
+| 기능 | 설명 |
+|------|------|
+| **TLS 1.2/1.3 암호화** | 모든 외부 통신 암호화 (Port 8883) |
+| **Username/Password 인증** | 등록된 클라이언트만 접속 허용 |
+| **Topic ACL** | 클라이언트별 토픽 접근 권한 제어 |
+| **Outbound 연결** | NAT/방화벽 환경에서도 연결 가능 |
+
+---
 
 ## 통신 방식
 
-### 1. 라즈베리파이 → EC2 (MQTT)
+### 1. 라즈베리파이 → EC2 (MQTT Bridge)
 
 | 항목 | 설명 |
 |------|------|
-| **프로토콜** | MQTT |
-| **방향** | 라즈베리파이 → EC2 Backend |
-| **용도** | 센서 데이터, 상태 정보, 이벤트 전송 |
-| **Broker 위치** | 라즈베리파이 |
-| **포트** | 1883 (기본) / 8883 (SSL) |
+| **프로토콜** | MQTT over TLS |
+| **방향** | 라즈베리파이 → EC2 (Outbound) |
+| **포트** | 8883 (TLS) |
+| **용도** | 센서 데이터, 디바이스 상태, 알림 전송 |
 
-**사용 예시:**
-- 센서 데이터 실시간 전송
-- 디바이스 상태 업데이트
-- 알림/이벤트 발생 시 즉시 전달
+**자동 전달되는 토픽:**
+- `autobox/sensor/#` - 센서 데이터
+- `autobox/device/#` - 디바이스 상태
+- `autobox/alert/#` - 알림
+- `autobox/camera/#` - 카메라 감지
 
-### 2. EC2 → 라즈베리파이 (REST API)
+### 2. EC2 → 라즈베리파이 (MQTT Command)
 
 | 항목 | 설명 |
 |------|------|
-| **프로토콜** | HTTP REST API |
-| **방향** | EC2 Backend → 라즈베리파이 |
-| **용도** | 명령 전달, 설정 변경, 제어 요청 |
-| **포트** | 5000 (예시) |
+| **프로토콜** | MQTT over TLS |
+| **방향** | EC2 → 라즈베리파이 |
+| **포트** | 8883 (TLS) |
+| **용도** | 제어 명령, 설정 변경 |
 
-**사용 예시:**
-- 디바이스 설정 변경 명령
-- 특정 동작 실행 요청
-- 상태 조회 요청
+**명령 토픽:**
+- `autobox/command/#` - 제어 명령
+
+### 3. 오린나노 ↔ 라즈베리파이 (로컬 MQTT)
+
+| 항목 | 설명 |
+|------|------|
+| **프로토콜** | MQTT (비암호화) |
+| **방향** | 양방향 |
+| **포트** | 1883 (localhost) |
+| **용도** | 자율주행 제어, 센서 데이터 |
 
 ---
 
 ## 설치 및 설정
 
-### 라즈베리파이 설치 항목
+### EC2 서버 설정
 
-#### 1. MQTT Broker (Mosquitto)
-
-```bash
-# Mosquitto 설치
-sudo apt update
-sudo apt install -y mosquitto mosquitto-clients
-
-# 서비스 시작 및 자동 시작 설정
-sudo systemctl start mosquitto
-sudo systemctl enable mosquitto
-
-# 외부 접속 허용 설정
-sudo nano /etc/mosquitto/mosquitto.conf
-```
-
-`/etc/mosquitto/mosquitto.conf` 설정:
-```conf
-listener 1883
-allow_anonymous true
-
-# 인증 사용 시 (권장)
-# allow_anonymous false
-# password_file /etc/mosquitto/passwd
-```
+#### 1. TLS 인증서 생성
 
 ```bash
-# 설정 적용
-sudo systemctl restart mosquitto
+cd mqtt/certs
+chmod +x generate-certs.sh
+./generate-certs.sh 43.201.254.235
 ```
 
-#### 2. MQTT Client (Python)
+#### 2. MQTT 비밀번호 설정
 
 ```bash
-pip install paho-mqtt
+cd mqtt/config
+chmod +x generate-passwd.sh
+./generate-passwd.sh
 ```
 
-**Publisher 예시 코드:**
-```python
-import paho.mqtt.client as mqtt
-import json
-import time
-
-# Broker 설정 (localhost - 같은 라즈베리파이)
-BROKER_HOST = "localhost"
-BROKER_PORT = 1883
-TOPIC = "autobox/sensor/data"
-
-client = mqtt.Client()
-client.connect(BROKER_HOST, BROKER_PORT, 60)
-
-# 센서 데이터 발행
-data = {
-    "device_id": "rpi-001",
-    "temperature": 25.5,
-    "humidity": 60,
-    "timestamp": time.time()
-}
-client.publish(TOPIC, json.dumps(data))
-client.disconnect()
-```
-
-#### 3. REST API Server (Flask)
+#### 3. Docker 컨테이너 시작
 
 ```bash
-pip install flask
+docker-compose up -d
 ```
 
-**REST Server 예시 코드:**
-```python
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
-
-@app.route('/api/command', methods=['POST'])
-def receive_command():
-    """EC2로부터 명령 수신"""
-    data = request.json
-    command = data.get('command')
-    
-    # 명령 처리 로직
-    result = process_command(command)
-    
-    return jsonify({"status": "success", "result": result})
-
-@app.route('/api/status', methods=['GET'])
-def get_status():
-    """디바이스 상태 반환"""
-    return jsonify({
-        "device_id": "rpi-001",
-        "status": "online",
-        "uptime": get_uptime()
-    })
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-```
-
----
-
-### EC2 Backend 설치 항목
-
-#### 1. MQTT Client (Python)
-
-`requirements.txt`에 추가:
-```
-paho-mqtt==1.6.1
-# 또는 비동기 버전
-aiomqtt==1.2.1
-```
-
-**Subscriber 예시 코드:**
-```python
-import paho.mqtt.client as mqtt
-import json
-
-# 라즈베리파이 Broker 설정
-BROKER_HOST = "라즈베리파이_IP"  # 예: 192.168.0.100
-BROKER_PORT = 1883
-TOPIC = "autobox/sensor/#"
-
-def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
-    client.subscribe(TOPIC)
-
-def on_message(client, userdata, msg):
-    data = json.loads(msg.payload.decode())
-    print(f"Received: {data}")
-    # 데이터 처리 로직 (DB 저장 등)
-
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-
-client.connect(BROKER_HOST, BROKER_PORT, 60)
-client.loop_forever()
-```
-
-#### 2. REST Client (httpx)
-
-**라즈베리파이에 명령 전송 예시:**
-```python
-import httpx
-
-RASPBERRY_PI_URL = "http://라즈베리파이_IP:5000"
-
-async def send_command(command: str):
-    """라즈베리파이에 명령 전송"""
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{RASPBERRY_PI_URL}/api/command",
-            json={"command": command}
-        )
-        return response.json()
-
-async def get_device_status():
-    """라즈베리파이 상태 조회"""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{RASPBERRY_PI_URL}/api/status")
-        return response.json()
-```
-
----
-
-## 네트워크 설정
-
-### 필수 포트
-
-| 서비스 | 포트 | 프로토콜 | 방향 |
-|--------|------|----------|------|
-| MQTT Broker | 1883 | TCP | EC2 → 라즈베리파이 |
-| 라즈베리파이 REST API | 5000 | TCP | EC2 → 라즈베리파이 |
-| EC2 Backend | 8000 | TCP | 외부 → EC2 |
-| EC2 Frontend | 80 | TCP | 외부 → EC2 |
-
-### 라즈베리파이 네트워크 요구사항
-
-EC2에서 라즈베리파이에 접근해야 하므로 다음 중 하나가 필요합니다:
-
-| 환경 | 설정 방법 |
-|------|-----------|
-| **공인 IP** | 직접 연결 가능 |
-| **공유기/NAT** | 포트 포워딩 설정 (1883, 5000 포트) |
-| **DDNS** | 동적 IP 환경에서 도메인으로 접근 |
-
-### 포트 포워딩 설정 예시 (공유기)
-
-```
-외부 포트 1883 → 내부 IP(라즈베리파이):1883
-외부 포트 5000 → 내부 IP(라즈베리파이):5000
-```
-
-### EC2 보안 그룹 설정
-
-EC2 인바운드 규칙:
+#### 4. EC2 보안그룹 설정
 
 | 포트 | 프로토콜 | 소스 | 용도 |
 |------|----------|------|------|
 | 80 | TCP | 0.0.0.0/0 | Frontend |
 | 8000 | TCP | 0.0.0.0/0 | Backend API |
+| **8883** | TCP | 0.0.0.0/0 | **MQTT TLS** |
+
+### 라즈베리파이 설정
+
+#### 1. Mosquitto 설치
+
+```bash
+sudo apt update
+sudo apt install -y mosquitto mosquitto-clients
+```
+
+#### 2. 인증서 복사
+
+```bash
+# EC2에서 라즈베리파이로 복사
+scp mqtt/certs/ca.crt pi@<RPI_IP>:/home/pi/autobox/certs/
+scp mqtt/certs/client.crt pi@<RPI_IP>:/home/pi/autobox/certs/
+scp mqtt/certs/client.key pi@<RPI_IP>:/home/pi/autobox/certs/
+```
+
+#### 3. 브릿지 설정
+
+```bash
+# 설정 파일 복사
+sudo cp Embedded/raspberry-pi/mosquitto-bridge.conf /etc/mosquitto/conf.d/bridge.conf
+
+# EC2 IP 및 비밀번호 수정
+sudo nano /etc/mosquitto/conf.d/bridge.conf
+
+# 재시작
+sudo systemctl restart mosquitto
+```
 
 ---
 
-## MQTT Topic 구조 (권장)
+## MQTT Topic 구조
 
 ```
 autobox/
 ├── sensor/
-│   ├── data          # 센서 데이터
+│   ├── data          # 센서 데이터 (라즈베리파이 → EC2)
 │   └── status        # 센서 상태
 ├── device/
-│   ├── status        # 디바이스 상태
+│   ├── status        # 디바이스 상태 (라즈베리파이 → EC2)
 │   └── heartbeat     # 연결 유지 신호
 ├── alert/
-│   └── notification  # 알림 이벤트
-└── camera/
-    └── detection     # 카메라 감지 이벤트
+│   └── notification  # 알림 이벤트 (라즈베리파이 → EC2)
+├── camera/
+│   └── detection     # 카메라 감지 (라즈베리파이 → EC2)
+├── command/
+│   └── #             # 제어 명령 (EC2 → 라즈베리파이)
+└── bridge/
+    └── status        # 브릿지 연결 상태
+```
+
+---
+
+## 데이터 흐름
+
+```
+오린나노                라즈베리파이              EC2
+   │                        │                      │
+   │  센서 데이터           │                      │
+   │  (autobox/sensor/*)    │                      │
+   │ ─────────────────────▶ │                      │
+   │                        │  브릿지 자동 전달    │
+   │                        │  (TLS 암호화)        │
+   │                        │ ────────────────────▶│
+   │                        │                      │  DB 저장
+   │                        │                      │  WebSocket 전달
+   │                        │                      │  대시보드 표시
+   │                        │                      │
+   │                        │     제어 명령        │
+   │                        │  (autobox/command/*) │
+   │                        │ ◀────────────────────│
+   │   명령 수신            │                      │
+   │ ◀───────────────────── │                      │
 ```
 
 ---
 
 ## 연결 테스트
 
-### 1. MQTT 연결 테스트
+### EC2 브로커 테스트
 
-**라즈베리파이에서 (Broker 테스트):**
 ```bash
-# Subscriber 실행
-mosquitto_sub -h localhost -t "test/topic"
+# 컨테이너 내부에서 구독
+docker exec -it autobox-mqtt mosquitto_sub -h localhost -t "autobox/#" -v
 
-# 다른 터미널에서 Publisher 실행
-mosquitto_pub -h localhost -t "test/topic" -m "Hello MQTT"
+# 다른 터미널에서 발행
+docker exec -it autobox-mqtt mosquitto_pub -h localhost -t "autobox/test" -m "Hello"
 ```
 
-**EC2에서 (라즈베리파이 Broker 연결 테스트):**
-```bash
-# mosquitto-clients 설치
-sudo apt install mosquitto-clients
+### 라즈베리파이 브릿지 테스트
 
-# 라즈베리파이 Broker에 연결
-mosquitto_sub -h 라즈베리파이_IP -t "test/topic"
+```bash
+# 라즈베리파이에서 로컬 발행
+mosquitto_pub -h localhost -t "autobox/sensor/data" -m '{"temp": 25.5}'
+
+# EC2에서 수신 확인
+docker exec -it autobox-mqtt mosquitto_sub -h localhost -t "autobox/#" -v
 ```
 
-### 2. REST API 연결 테스트
+### TLS 연결 테스트
 
-**EC2에서 라즈베리파이 REST API 테스트:**
 ```bash
-curl http://라즈베리파이_IP:5000/api/status
+# 라즈베리파이에서 EC2로 직접 연결
+mosquitto_sub -h EC2_IP -p 8883 \
+  --cafile /home/pi/autobox/certs/ca.crt \
+  -u raspberry-pi -P your_password \
+  -t "autobox/#" -v
 ```
 
 ---
 
 ## 환경 변수
 
-### EC2 Backend (.env)
+### EC2 (.env)
 
 ```env
-# MQTT 설정
-MQTT_BROKER_HOST=라즈베리파이_IP
+# MQTT Broker (Docker internal)
+MQTT_BROKER_HOST=mosquitto
 MQTT_BROKER_PORT=1883
 MQTT_TOPIC_PREFIX=autobox
-
-# 라즈베리파이 REST API
-RASPBERRY_PI_URL=http://라즈베리파이_IP:5000
+MQTT_CLIENT_ID=autobox-backend
+MQTT_USERNAME=backend
+MQTT_PASSWORD=your_password
+MQTT_ENABLED=true
 ```
 
-### 라즈베리파이
+### 라즈베리파이 (.env)
 
 ```env
-# MQTT Broker
-MQTT_BROKER_PORT=1883
+# EC2 MQTT Broker (TLS)
+EC2_BROKER_HOST=43.201.254.235
+EC2_BROKER_PORT=8883
+MQTT_USERNAME=raspberry-pi
+MQTT_PASSWORD=your_password
 
-# REST API Server
-REST_API_PORT=5000
+# TLS Certificates
+CA_CERT_PATH=/home/pi/autobox/certs/ca.crt
 
-# EC2 Backend (필요시)
-EC2_BACKEND_URL=http://43.201.254.235:8000
+# Local Settings
+DEVICE_ID=rpi-001
+```
+
+---
+
+## 문제 해결
+
+### 브릿지 연결 실패
+
+```bash
+# Mosquitto 로그 확인
+sudo journalctl -u mosquitto -f
+
+# 원인:
+# 1. EC2 보안그룹에서 8883 포트 미개방
+# 2. 인증서 경로/권한 오류
+# 3. Username/Password 불일치
+```
+
+### TLS 핸드셰이크 실패
+
+```bash
+# 인증서 검증
+openssl x509 -in ca.crt -text -noout
+
+# 서버 연결 테스트
+openssl s_client -connect EC2_IP:8883 -CAfile ca.crt
 ```
 
 ---
@@ -351,4 +320,5 @@ EC2_BACKEND_URL=http://43.201.254.235:8000
 
 - [Mosquitto Documentation](https://mosquitto.org/documentation/)
 - [Paho MQTT Python](https://pypi.org/project/paho-mqtt/)
-- [FastAPI WebSocket](https://fastapi.tiangolo.com/advanced/websockets/)
+- [MQTT Bridge Configuration](https://mosquitto.org/man/mosquitto-conf-5.html)
+- [TLS/SSL Certificate Generation](https://mosquitto.org/man/mosquitto-tls-7.html)

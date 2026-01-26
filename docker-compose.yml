@@ -2,6 +2,27 @@
 # Usage: docker-compose up -d --build
 
 services:
+  # MQTT Broker (Mosquitto)
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: autobox-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # Internal (non-TLS) - localhost only in production
+      - "8883:8883"   # External (TLS) - for Raspberry Pi connection
+    volumes:
+      - ./backend/mqtt/config:/mosquitto/config:ro
+      - ./backend/mqtt/data:/mosquitto/data
+      - ./backend/mqtt/log:/mosquitto/log
+      - ./backend/mqtt/certs:/mosquitto/certs:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-p", "1883", "-t", "$$SYS/#", "-C", "1", "-W", "3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - autobox-network
+
   # FastAPI Backend
   backend:
     build:
@@ -15,8 +36,19 @@ services:
       PORT: 8000
       DEBUG: ${DEBUG:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:80,http://localhost:5173,http://frontend}
+      # MQTT Configuration
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
+      MQTT_TOPIC_PREFIX: ${MQTT_TOPIC_PREFIX:-autobox}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-autobox-backend}
+      MQTT_USERNAME: ${MQTT_USERNAME:-backend}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_ENABLED: ${MQTT_ENABLED:-true}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

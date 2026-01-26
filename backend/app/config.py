@@ -18,6 +18,25 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     
+    # MQTT Configuration
+    MQTT_BROKER_HOST: str = "localhost"
+    MQTT_BROKER_PORT: int = 1883
+    MQTT_TOPIC_PREFIX: str = "autobox"
+    MQTT_CLIENT_ID: str = "autobox-backend"
+    MQTT_USERNAME: str = ""
+    MQTT_PASSWORD: str = ""
+    MQTT_ENABLED: bool = True
+    
+    # MQTT TLS Configuration (for external connections)
+    MQTT_USE_TLS: bool = False
+    MQTT_CA_CERT: str = ""
+    MQTT_CLIENT_CERT: str = ""
+    MQTT_CLIENT_KEY: str = ""
+    MQTT_TLS_INSECURE: bool = False  # Set to True to skip hostname verification
+    
+    # Raspberry Pi REST API
+    RASPBERRY_PI_URL: str = "http://localhost:5000"
+    
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS origins from comma-separated string."""

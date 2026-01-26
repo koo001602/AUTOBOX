@@ -1,0 +1,21 @@
+# AutoBox MQTT ACL
+topic readwrite autobox/#
+
+user backend
+topic readwrite autobox/#
+topic readwrite command/#
+topic read $SYS/#
+
+user raspberry-pi
+topic write autobox/sensor/#
+topic write autobox/device/#
+topic write autobox/alert/#
+topic write autobox/camera/#
+topic read command/#
+topic read autobox/command/#
+
+user dashboard
+topic read autobox/#
+topic read $SYS/#
+
+pattern read $SYS/#

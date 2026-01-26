@@ -121,37 +121,46 @@
 }
 
 html {
-  /* 고정 폰트 크기 - 개발자 도구 해상도 변경에도 일정하게 유지 */
   font-size: 16px;
 }
 
 /* ============================================
-   Typography Scale (CSS 변수로 중앙 관리)
-   고정값 사용으로 일관된 크기 유지
+   Typography Scale
    ============================================ */
 :root {
   /* 제목 폰트 */
-  --font-size-h1: 2rem;
+  --font-size-h1: 1.75rem;
   --font-size-h2: 1.5rem;
   --font-size-h3: 1.25rem;
   
   /* 본문 폰트 */
-  --font-size-lg: 1.125rem;
-  --font-size-base: 1rem;
-  --font-size-sm: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-base: 0.9375rem;
+  --font-size-sm: 0.8125rem;
   --font-size-xs: 0.75rem;
   
   /* 특수 폰트 (데이터 표시용) */
-  --font-size-data-xl: 3rem;
-  --font-size-data-lg: 1.25rem;
+  --font-size-data-xl: 2.5rem;
+  --font-size-data-lg: 1.5rem;
   --font-size-data-base: 1rem;
   
   /* 레이블 폰트 */
-  --font-size-label: 0.8125rem;
+  --font-size-label: 0.75rem;
   
-  /* 폰트 패밀리 */
-  --font-family-base: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', '맑은 고딕', sans-serif;
-  --font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, 'Apple SD Gothic Neo', monospace;
+  /* 폰트 패밀리 - Pretendard */
+  --font-family-base: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  
+  /* 터치 최적화 */
+  --touch-target-min: 44px;
+  --spacing-xs: 6px;
+  --spacing-sm: 10px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --border-radius-sm: 6px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
 }
 
 body {

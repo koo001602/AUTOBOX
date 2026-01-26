@@ -18,6 +18,7 @@ from app.routers import (
 )
 from app.routers.websocket import router as websocket_router
 from app.routers.frontend_compat import router as frontend_compat_router
+from app.services.mqtt import mqtt_service, register_default_handlers
 
 settings = get_settings()
 
@@ -28,8 +29,17 @@ async def lifespan(app: FastAPI):
     # Startup: Create tables if they don't exist
     # Note: In production, use Alembic migrations instead
     # Base.metadata.create_all(bind=engine)
+    
+    # Startup: Connect to MQTT broker
+    if settings.MQTT_ENABLED:
+        register_default_handlers()
+        mqtt_service.connect()
+    
     yield
-    # Shutdown: cleanup if needed
+    
+    # Shutdown: Disconnect from MQTT broker
+    if settings.MQTT_ENABLED:
+        mqtt_service.disconnect()
 
 
 app = FastAPI(

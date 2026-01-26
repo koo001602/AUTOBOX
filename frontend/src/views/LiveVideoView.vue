@@ -5,7 +5,8 @@
       <section class="panel video-panel">
         <div class="panel-header">
           <div class="panel-title">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="m22 8-6 4 6 4V8Z" />
               <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
             </svg>
@@ -35,7 +36,8 @@
               <!-- Placeholder -->
               <div class="video-placeholder">
                 <div class="placeholder-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m22 8-6 4 6 4V8Z" />
                     <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
                   </svg>
@@ -64,26 +66,30 @@
             <div class="video-controls">
               <div class="control-group">
                 <button class="control-btn" title="전체화면">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
-                    <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
-                    <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
-                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                    <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+                    <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
                   </svg>
                 </button>
                 <button class="control-btn" title="스크린샷">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                    <circle cx="12" cy="13" r="3"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                      d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
                   </svg>
                 </button>
                 <button class="control-btn scan-btn" @click="handleScan" :disabled="isScanning" title="스캔 시작">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-                    <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-                    <rect x="7" y="7" width="10" height="10" rx="1"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                    <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                    <rect x="7" y="7" width="10" height="10" rx="1" />
                   </svg>
                 </button>
               </div>
@@ -106,20 +112,23 @@
       <section class="panel scan-panel">
         <div class="panel-header">
           <div class="panel-title">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m7.5 4.27 9 5.15"/>
-              <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-              <path d="m3.3 7 8.7 5 8.7-5"/>
-              <path d="M12 22V12"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7.5 4.27 9 5.15" />
+              <path
+                d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+              <path d="m3.3 7 8.7 5 8.7-5" />
+              <path d="M12 22V12" />
             </svg>
             현재 스캔 정보
           </div>
           <button class="btn-scan" @click="handleScan" :disabled="isScanning">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-              <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
             </svg>
             {{ isScanning ? '스캔 중...' : '스캔 시작' }}
           </button>
@@ -128,11 +137,12 @@
         <div class="panel-body">
           <!-- 스캔 대기 상태 -->
           <div class="scan-empty" v-if="!currentScan">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-              <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
             </svg>
             <span>스캔 대기 중</span>
             <span class="scan-empty-sub">스캔 버튼을 눌러 물류를 등록하세요</span>
@@ -172,16 +182,18 @@
             <!-- 작업 버튼 -->
             <div class="scan-actions" v-if="currentScan.status === 'READY'">
               <button class="btn-action btn-start" @click="handleStartSorting">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
                 분류 시작
               </button>
             </div>
             <div class="scan-actions" v-else-if="currentScan.status === 'MOVING'">
               <button class="btn-action btn-complete" @click="handleComplete">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="20 6 9 17 4 12"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12" />
                 </svg>
                 분류 완료
               </button>
@@ -194,10 +206,11 @@
       <section class="panel history-panel">
         <div class="panel-header">
           <div class="panel-title">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
-              <path d="M12 7v5l4 2"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M12 7v5l4 2" />
             </svg>
             최근 스캔 이력
           </div>
@@ -206,12 +219,7 @@
 
         <div class="panel-body history-body">
           <div class="history-list" v-if="scanHistory.length > 0">
-            <div 
-              class="history-item" 
-              v-for="item in scanHistory" 
-              :key="item.waybill_id"
-              @click="selectScan(item)"
-            >
+            <div class="history-item" v-for="item in scanHistory" :key="item.waybill_id" @click="selectScan(item)">
               <div class="history-main">
                 <span class="history-id font-mono">{{ item.tracking_number }}</span>
                 <span class="history-status" :class="getStatusClass(item.status)">
@@ -281,7 +289,7 @@ const getStatusClass = (status) => {
 // 스캔 시작
 const handleScan = async () => {
   if (isScanning.value) return
-  
+
   isScanning.value = true
   try {
     const res = await startWaybillScan('CAM:01')
@@ -303,7 +311,7 @@ const handleScan = async () => {
 // 분류 시작
 const handleStartSorting = async () => {
   if (!currentScan.value) return
-  
+
   try {
     const res = await startSorting(currentScan.value.waybill_id)
     if (res.data.success) {
@@ -318,7 +326,7 @@ const handleStartSorting = async () => {
 // 분류 완료
 const handleComplete = async () => {
   if (!currentScan.value) return
-  
+
   try {
     const res = await completeSorting(currentScan.value.waybill_id)
     if (res.data.success) {
@@ -369,11 +377,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* =============================================
+   Premium Glass Live View (HUD Style)
+   ============================================= */
+
 .live-view {
   height: 100%;
-  padding: 20px;
+  padding: 20px 24px;
   display: flex;
-  gap: 20px;
+  gap: 24px;
+  overflow: hidden;
 }
 
 .live-left {
@@ -387,23 +400,34 @@ onUnmounted(() => {
   width: 380px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Panel Styles */
 .panel {
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: var(--glass-panel);
+  backdrop-filter: blur(var(--blur-amount));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+}
+
+.panel:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
 .video-panel {
   flex: 1;
   min-height: 0;
+  background: rgba(15, 23, 42, 0.6);
+  /* Darker for video focus */
 }
 
 .scan-panel {
@@ -419,20 +443,22 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 .panel-body {
@@ -440,202 +466,227 @@ onUnmounted(() => {
   padding: 20px;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .header-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .cam-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--font-size-data-base);
+  font-size: 13px;
   font-family: var(--font-family-mono);
-  font-weight: 600;
-  color: var(--text-secondary);
-  padding: 8px 14px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
+  font-weight: 700;
+  color: var(--color-primary);
+  padding: 6px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 6px;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
 }
 
 .cam-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: var(--color-primary);
+  box-shadow: 0 0 8px var(--color-primary);
 }
 
 /* Video Container */
 .video-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  padding: 0;
+  /* Remove padding for immersive video */
 }
 
 .video-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
   height: 100%;
+  background: black;
+  position: relative;
 }
 
 .video-feed {
   position: relative;
   background-color: #000;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  flex: 1;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 4:3 비율 유지 (640x480) */
-  aspect-ratio: 4 / 3;
-  width: 100%;
-  max-height: calc(100vh - 250px);
 }
 
-/* Corner Brackets */
-.video-corners .corner {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--color-primary);
-  z-index: 5;
-}
-
-.corner.top-left { top: 24px; left: 24px; border-right: none; border-bottom: none; }
-.corner.top-right { top: 24px; right: 24px; border-left: none; border-bottom: none; }
-.corner.bottom-left { bottom: 24px; left: 24px; border-right: none; border-top: none; }
-.corner.bottom-right { bottom: 24px; right: 24px; border-left: none; border-top: none; }
-
-/* Video Placeholder */
-.video-placeholder {
-  text-align: center;
-  color: var(--text-muted);
-  z-index: 1;
-}
-
-.placeholder-icon {
-  margin-bottom: 16px;
-  opacity: 0.4;
-}
-
-.placeholder-text {
-  display: block;
-  font-size: var(--font-size-h3);
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.placeholder-sub {
-  display: block;
-  font-size: var(--font-size-base);
-  opacity: 0.7;
-}
-
-/* Video Overlay */
+/* HUD Overlay */
 .video-overlay {
   position: absolute;
   inset: 0;
-  padding: 16px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   pointer-events: none;
-  z-index: 4;
+  z-index: 10;
+  background: radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
 }
 
 .overlay-top,
 .overlay-bottom {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .record-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  background-color: rgba(239, 68, 68, 0.9);
-  border-radius: 6px;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  padding: 6px 14px;
+  background: rgba(239, 68, 68, 0.8);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 800;
   color: white;
   letter-spacing: 0.05em;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
 }
 
 .record-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   background-color: white;
   border-radius: 50%;
   animation: blink 1s infinite;
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .timestamp {
-  padding: 8px 14px;
-  background-color: rgba(0, 0, 0, 0.7);
-  border-radius: 6px;
-  font-size: var(--font-size-data-base);
-  color: white;
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--color-primary);
+  font-weight: 700;
+  text-shadow: 0 0 5px var(--color-primary);
+  backdrop-filter: blur(4px);
 }
 
 .resolution,
 .fps {
-  padding: 8px 14px;
-  background-color: rgba(0, 0, 0, 0.7);
-  border-radius: 6px;
-  font-size: var(--font-size-sm);
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  font-size: 11px;
   font-family: var(--font-family-mono);
   color: var(--text-muted);
+  font-weight: 600;
+  backdrop-filter: blur(4px);
 }
 
-/* Video Controls */
+/* Corner Brackets (HUD) */
+.video-corners .corner {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  z-index: 5;
+  transition: all 0.3s;
+}
+
+.video-feed:hover .video-corners .corner {
+  border-color: var(--color-primary);
+  width: 80px;
+  height: 80px;
+  box-shadow: 0 0 20px var(--color-primary-glow);
+}
+
+.corner.top-left {
+  top: 20px;
+  left: 20px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner.top-right {
+  top: 20px;
+  right: 20px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.corner.bottom-left {
+  bottom: 20px;
+  left: 20px;
+  border-right: none;
+  border-top: none;
+}
+
+.corner.bottom-right {
+  bottom: 20px;
+  right: 20px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Video Controls Bar */
 .video-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  flex-shrink: 0;
+  padding: 16px 24px;
+  background: var(--glass-header);
+  border-top: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  z-index: 20;
 }
 
 .control-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .control-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .control-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Status Badge */
@@ -643,49 +694,55 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 6px;
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
 }
 
 .badge-success {
-  background-color: var(--color-success-light);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
 }
 
 .status-dot.online {
   background-color: var(--color-success);
-  box-shadow: 0 0 8px var(--color-success);
+  box-shadow: 0 0 10px var(--color-success);
   animation: pulse-status 2s infinite;
 }
 
 @keyframes pulse-status {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
 }
 
 /* Live Indicator */
 .live-indicator {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background-color: var(--color-error-light);
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 6px;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 800;
   color: var(--color-error);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
 }
 
 .live-indicator::before {
@@ -694,48 +751,37 @@ onUnmounted(() => {
   height: 6px;
   background-color: var(--color-error);
   border-radius: 50%;
+  box-shadow: 0 0 6px var(--color-error);
   animation: blink 1.5s infinite;
 }
 
-.font-mono {
-  font-family: var(--font-family-mono);
-}
-
-/* Scan Button in Video Controls */
-.scan-btn {
-  background-color: var(--color-primary-light) !important;
-  border-color: var(--color-primary) !important;
-  color: var(--color-primary) !important;
-}
-
-.scan-btn:hover {
-  background-color: var(--color-primary) !important;
-  color: white !important;
-}
-
-/* Scan Panel Header Button */
+/* Scan Button (Header) */
 .btn-scan {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background-color: var(--color-primary);
+  gap: 8px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   color: white;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px var(--color-primary-glow);
 }
 
 .btn-scan:hover {
-  background-color: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--color-primary-glow);
 }
 
 .btn-scan:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Scan Empty State */
@@ -744,245 +790,255 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 40px;
   color: var(--text-muted);
   text-align: center;
-  gap: 8px;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px dashed var(--glass-border);
 }
 
 .scan-empty svg {
-  opacity: 0.4;
-  margin-bottom: 8px;
+  opacity: 0.3;
+  color: var(--text-secondary);
 }
 
-.scan-empty-sub {
-  font-size: var(--font-size-sm);
-  opacity: 0.7;
-}
-
-/* Scan Info */
+/* Scan Info Styling */
 .scan-info {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  animation: slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .scan-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-}
-
-.scan-id {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .scan-label {
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.1em;
+  margin-bottom: 4px;
 }
 
 .scan-value {
-  font-size: var(--font-size-h2);
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   color: var(--text-primary);
   font-family: var(--font-family-mono);
+  letter-spacing: -0.02em;
 }
 
 .scan-status {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.status-ready {
-  background-color: var(--color-warning-light);
+.scan-status.status-ready {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.scan-status.status-moving {
+  background: rgba(245, 158, 11, 0.1);
   color: var(--color-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
-.status-moving {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.status-completed {
-  background-color: var(--color-success-light);
+.scan-status.status-completed {
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
 }
 
-.status-error {
-  background-color: var(--color-error-light);
+.scan-status.status-error {
+  background: rgba(239, 68, 68, 0.1);
   color: var(--color-error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-/* Scan Detail */
 .scan-detail {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
 .detail-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  background-color: var(--bg-elevated);
-  border-radius: 6px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.detail-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .detail-label {
-  font-size: var(--font-size-xs);
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .detail-value {
-  font-size: var(--font-size-base);
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-/* Scan Actions */
+/* Action Buttons */
 .scan-actions {
-  display: flex;
-  gap: 10px;
-  padding-top: 8px;
+  margin-top: 8px;
 }
 
 .btn-action {
-  flex: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
+  border: none;
 }
 
 .btn-start {
-  background-color: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-info), #4338ca);
   color: white;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
 .btn-start:hover {
-  background-color: var(--color-primary-hover);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
 }
 
 .btn-complete {
-  background-color: var(--color-success);
+  background: linear-gradient(135deg, var(--color-success), #059669);
   color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .btn-complete:hover {
-  background-color: #059669;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
 }
 
-/* History Panel */
-.history-count {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 4px 10px;
-  background-color: var(--bg-elevated);
-  border-radius: 4px;
-}
-
+/* History List */
 .history-body {
   padding: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .history-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
 .history-item:hover {
-  background-color: var(--bg-hover);
-}
-
-.history-item:last-child {
-  border-bottom: none;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(4px);
 }
 
 .history-main {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .history-id {
-  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 13px;
 }
 
 .history-status {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: var(--font-size-xs);
+  font-size: 11px;
   font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .history-sub {
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--font-size-xs);
+  text-align: right;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
 .history-empty {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
   color: var(--text-muted);
-  font-size: var(--font-size-sm);
+  font-size: 13px;
+  font-style: italic;
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
   .live-view {
     flex-direction: column;
   }
-  
+
   .live-right {
     width: 100%;
-    flex-direction: row;
+    height: auto;
   }
-  
-  .scan-panel,
-  .history-panel {
-    flex: 1;
-  }
-}
 
-@media (max-width: 768px) {
-  .live-right {
-    flex-direction: column;
+  .video-container {
+    aspect-ratio: 16/9;
+    max-height: 50vh;
   }
 }
 </style>

@@ -15,6 +15,7 @@ from app.routers import (
     stats_router,
     recognition_router,
     cameras_router,
+    vehicle_router,
 )
 from app.routers.websocket import router as websocket_router
 from app.routers.frontend_compat import router as frontend_compat_router
@@ -88,6 +89,7 @@ app.include_router(alerts_router, prefix=API_PREFIX)
 app.include_router(stats_router, prefix=API_PREFIX)
 app.include_router(recognition_router, prefix=API_PREFIX)
 app.include_router(cameras_router, prefix=API_PREFIX)
+app.include_router(vehicle_router, prefix=API_PREFIX)
 
 # WebSocket router (no API prefix)
 app.include_router(websocket_router)

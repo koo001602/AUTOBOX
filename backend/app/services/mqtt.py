@@ -276,24 +276,221 @@ mqtt_service = MQTTService()
 def handle_sensor_data(message: dict):
     """Handle sensor data from IoT devices."""
     logger.info(f"Sensor data received: {message}")
-    # TODO: Process and store sensor data in database
+    
+    # Store sensor data in database
+    try:
+        from app.database import SessionLocal
+        from app.models.vehicle import SensorStatus
+        
+        data = message.get("data", {})
+        if not data:
+            return
+        
+        vehicle_id = data.get("vehicle_id", "AGV-001")
+        
+        db = SessionLocal()
+        try:
+            # Handle individual sensor update
+            if "sensor_name" in data:
+                sensor = db.query(SensorStatus).filter(
+                    SensorStatus.vehicle_id == vehicle_id,
+                    SensorStatus.sensor_name == data["sensor_name"]
+                ).first()
+                
+                if sensor:
+                    sensor.status = data.get("status", "ok")
+                    sensor.value = data.get("value")
+                    sensor.health = data.get("health", 100)
+                    sensor.data = data.get("data")
+                else:
+                    sensor = SensorStatus(
+                        vehicle_id=vehicle_id,
+                        sensor_name=data["sensor_name"],
+                        sensor_type=data.get("sensor_type"),
+                        status=data.get("status", "ok"),
+                        value=data.get("value"),
+                        health=data.get("health", 100),
+                        data=data.get("data")
+                    )
+                    db.add(sensor)
+                
+                db.commit()
+                logger.info(f"Sensor status updated: {vehicle_id}/{data['sensor_name']}")
+            
+            # Handle bulk sensor update (multiple sensors in one message)
+            elif "sensors" in data:
+                for sensor_data in data["sensors"]:
+                    sensor = db.query(SensorStatus).filter(
+                        SensorStatus.vehicle_id == vehicle_id,
+                        SensorStatus.sensor_name == sensor_data["name"]
+                    ).first()
+                    
+                    if sensor:
+                        sensor.status = sensor_data.get("status", "ok")
+                        sensor.value = sensor_data.get("value")
+                        sensor.health = sensor_data.get("health", 100)
+                    else:
+                        sensor = SensorStatus(
+                            vehicle_id=vehicle_id,
+                            sensor_name=sensor_data["name"],
+                            sensor_type=sensor_data.get("type"),
+                            status=sensor_data.get("status", "ok"),
+                            value=sensor_data.get("value"),
+                            health=sensor_data.get("health", 100)
+                        )
+                        db.add(sensor)
+                
+                db.commit()
+                logger.info(f"Bulk sensor status updated for: {vehicle_id}")
+                
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error storing sensor data: {e}")
+
+
+def handle_vehicle_position(message: dict):
+    """Handle vehicle position updates from IoT devices."""
+    logger.info(f"Vehicle position received: {message}")
+    
+    # Store vehicle position in database
+    try:
+        from app.database import SessionLocal
+        from app.models.vehicle import VehiclePosition
+        
+        data = message.get("data", {})
+        if not data:
+            return
+        
+        vehicle_id = data.get("vehicle_id", "AGV-001")
+        
+        db = SessionLocal()
+        try:
+            # Find existing position record or create new one
+            position = db.query(VehiclePosition).filter(
+                VehiclePosition.vehicle_id == vehicle_id
+            ).first()
+            
+            if position:
+                position.x = data.get("x", position.x)
+                position.y = data.get("y", position.y)
+                position.angle = data.get("angle", position.angle)
+                position.speed = data.get("speed", position.speed)
+                position.battery = data.get("battery", position.battery)
+                position.mode = data.get("mode", position.mode)
+            else:
+                position = VehiclePosition(
+                    vehicle_id=vehicle_id,
+                    x=data.get("x", 0),
+                    y=data.get("y", 0),
+                    angle=data.get("angle", 0),
+                    speed=data.get("speed", 0),
+                    battery=data.get("battery", 100),
+                    mode=data.get("mode", "IDLE")
+                )
+                db.add(position)
+            
+            db.commit()
+            logger.info(f"Vehicle position updated: {vehicle_id} at ({position.x}, {position.y})")
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error storing vehicle position: {e}")
 
 
 def handle_device_status(message: dict):
     """Handle device status updates."""
     logger.info(f"Device status update: {message}")
-    # TODO: Update device status in database
+    
+    # Store device status in database
+    try:
+        from app.database import SessionLocal
+        from app.models.device import DeviceStatus, OperationStatus
+        
+        data = message.get("data", {})
+        if not data:
+            return
+        
+        device_id = data.get("device_id")
+        if not device_id:
+            return
+        
+        db = SessionLocal()
+        try:
+            device = db.query(DeviceStatus).filter(
+                DeviceStatus.device_id == device_id
+            ).first()
+            
+            if device:
+                device.battery_level = data.get("battery_level", device.battery_level)
+                device.is_connected = data.get("is_connected", device.is_connected)
+                device.cpu_temperature = data.get("cpu_temperature")
+                device.location = data.get("location")
+                if "operation_status" in data:
+                    device.operation_status = OperationStatus(data["operation_status"])
+            else:
+                device = DeviceStatus(
+                    device_id=device_id,
+                    battery_level=data.get("battery_level", 0),
+                    is_connected=data.get("is_connected", True),
+                    cpu_temperature=data.get("cpu_temperature"),
+                    location=data.get("location"),
+                    operation_status=OperationStatus(data.get("operation_status", "STOP"))
+                )
+                db.add(device)
+            
+            db.commit()
+            logger.info(f"Device status updated: {device_id}")
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error storing device status: {e}")
 
 
 def handle_alert_notification(message: dict):
     """Handle alert notifications from devices."""
     logger.info(f"Alert notification: {message}")
-    # TODO: Create alert record in database
+    
+    # Create alert record in database
+    try:
+        from app.database import SessionLocal
+        from app.models.alert import Alert, AlertSeverity
+        
+        data = message.get("data", {})
+        if not data:
+            return
+        
+        db = SessionLocal()
+        try:
+            alert = Alert(
+                alert_type=data.get("alert_type", "system"),
+                severity=AlertSeverity(data.get("severity", "info")),
+                title=data.get("title", "시스템 알림"),
+                message=data.get("message", ""),
+                source_type=data.get("source_type"),
+                source_id=data.get("source_id")
+            )
+            db.add(alert)
+            db.commit()
+            logger.info(f"Alert created: {alert.alert_id}")
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        logger.error(f"Error creating alert: {e}")
 
 
 # Register default handlers
 def register_default_handlers():
     """Register default message handlers."""
     mqtt_service.subscribe("sensor/#", handle_sensor_data)
+    mqtt_service.subscribe("vehicle/position", handle_vehicle_position)
+    mqtt_service.subscribe("vehicle/#", handle_vehicle_position)
     mqtt_service.subscribe("device/status", handle_device_status)
     mqtt_service.subscribe("alert/#", handle_alert_notification)

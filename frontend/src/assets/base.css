@@ -6,107 +6,121 @@
    Base Color Palette
    ============================================ */
 :root {
-  /* Primary Colors */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-primary-light: rgba(59, 130, 246, 0.15);
+  /* ============================================
+     Premium Glassmorphism Palette
+     ============================================ */
+     
+  /* Primary Colors (Neon/Electric) */
+  --color-primary: #6366f1; /* Indigo */
+  --color-primary-hover: #4f46e5;
+  --color-primary-glow: rgba(99, 102, 241, 0.5);
   
-  /* Status Colors */
-  --color-success: #10b981;
-  --color-success-light: rgba(16, 185, 129, 0.15);
-  --color-warning: #f59e0b;
-  --color-warning-light: rgba(245, 158, 11, 0.15);
-  --color-error: #ef4444;
-  --color-error-light: rgba(239, 68, 68, 0.15);
-  --color-info: #6366f1;
-  --color-info-light: rgba(99, 102, 241, 0.15);
+  --color-secondary: #06b6d4; /* Cyan */
+  --color-secondary-glow: rgba(6, 182, 212, 0.5);
+
+  --color-accent: #f472b6; /* Pink */
+  --color-accent-glow: rgba(244, 114, 182, 0.5);
+  
+  /* Status Colors (Neon) */
+  --color-success: #10b981; /* Emerald */
+  --color-success-glow: rgba(16, 185, 129, 0.4);
+  
+  --color-warning: #f59e0b; /* Amber */
+  --color-warning-glow: rgba(245, 158, 11, 0.4);
+  
+  --color-error: #ef4444; /* Red */
+  --color-error-glow: rgba(239, 68, 68, 0.4);
+  
+  --color-info: #3b82f6; /* Blue */
+  --color-info-glow: rgba(59, 130, 246, 0.4);
   
   /* Chart Colors */
-  --chart-completed: #10b981;
-  --chart-total-completed: #10b981;
-  --chart-pending: #475569;
-  --chart-region: #3b82f6;
+  --chart-primary: #6366f1;
+  --chart-success: #10b981;
+  --chart-warning: #f59e0b;
+  --chart-danger: #ef4444;
 }
 
 /* ============================================
-   Dark Theme (Default)
+   Dark Theme (Glass Default)
    ============================================ */
 :root,
 [data-theme="dark"] {
-  /* Background */
-  --bg-base: #0a0e1a;
-  --bg-surface: #0f1629;
-  --bg-elevated: #1a2236;
-  --bg-panel: #151d30;
-  --bg-input: #0d1320;
-  --bg-hover: rgba(255, 255, 255, 0.05);
-  
+  /* Backgrounds - Deep Space */
+  --bg-base: #0f172a; /* Fallback */
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+
+  /* Glass Surfaces */
+  --glass-panel: rgba(30, 41, 59, 0.6);
+  --glass-header: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.15);
+  --glass-shine: rgba(255, 255, 255, 0.05);
+
+  /* Transparent Overlays */
+  --overlay-dark: rgba(0, 0, 0, 0.2);
+  --overlay-darker: rgba(0, 0, 0, 0.3);
+  --overlay-light: rgba(255, 255, 255, 0.03);
+  --overlay-lighter: rgba(255, 255, 255, 0.05);
+
+  /* Table Header */
+  --table-header-bg: rgba(15, 23, 42, 0.8);
+
+  /* Video Panel */
+  --video-panel-bg: rgba(15, 23, 42, 0.6);
+
   /* Text */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
   --text-inverse: #0f172a;
-  
-  /* Border */
-  --border-color: #1e293b;
-  --border-color-light: #334155;
-  --border-color-focus: var(--color-primary);
-  
-  /* Shadow */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
-  
-  /* Status Indicator Glow */
-  --glow-success: 0 0 10px rgba(16, 185, 129, 0.5);
-  --glow-warning: 0 0 10px rgba(245, 158, 11, 0.5);
-  --glow-error: 0 0 10px rgba(239, 68, 68, 0.5);
-  
-  /* Scrollbar */
-  --scrollbar-track: #0f172a;
-  --scrollbar-thumb: #334155;
-  --scrollbar-thumb-hover: #475569;
+
+  /* Shadows */
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --shadow-neon: 0 0 15px var(--color-primary-glow);
+
+  /* Backdrop Filter */
+  --blur-amount: 12px;
 }
 
 /* ============================================
-   Light Theme
+   Light Theme (Frosted Glass)
    ============================================ */
 [data-theme="light"] {
-  /* Background */
-  --bg-base: #f1f5f9;
-  --bg-surface: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-panel: #ffffff;
-  --bg-input: #f8fafc;
-  --bg-hover: rgba(0, 0, 0, 0.03);
-  
+  /* Backgrounds */
+  --bg-base: #f0f4f8;
+  --bg-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+
+  /* Glass Surfaces */
+  --glass-panel: rgba(255, 255, 255, 0.7);
+  --glass-header: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(226, 232, 240, 0.6);
+  --glass-border-hover: rgba(203, 213, 225, 0.8);
+  --glass-shine: rgba(255, 255, 255, 0.5);
+
+  /* Transparent Overlays */
+  --overlay-dark: rgba(148, 163, 184, 0.1);
+  --overlay-darker: rgba(100, 116, 139, 0.15);
+  --overlay-light: rgba(255, 255, 255, 0.5);
+  --overlay-lighter: rgba(255, 255, 255, 0.7);
+
+  /* Table Header */
+  --table-header-bg: rgba(241, 245, 249, 0.9);
+
+  /* Video Panel */
+  --video-panel-bg: rgba(241, 245, 249, 0.8);
+
   /* Text */
-  --text-primary: #0f172a;
+  --text-primary: #1e293b;
   --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --text-inverse: #f1f5f9;
-  
-  /* Border */
-  --border-color: #e2e8f0;
-  --border-color-light: #cbd5e1;
-  --border-color-focus: var(--color-primary);
-  
-  /* Shadow */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
-  
-  /* Status Indicator Glow (lighter for light theme) */
-  --glow-success: 0 0 8px rgba(16, 185, 129, 0.3);
-  --glow-warning: 0 0 8px rgba(245, 158, 11, 0.3);
-  --glow-error: 0 0 8px rgba(239, 68, 68, 0.3);
-  
-  /* Scrollbar */
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-thumb-hover: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  /* Shadows */
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  --shadow-neon: 0 0 10px rgba(99, 102, 241, 0.2);
+
+  --blur-amount: 10px;
 }
 
 /* ============================================
@@ -374,3 +388,107 @@ samp {
   border-radius: 50%;
   animation: pulse-glow 1.5s infinite;
 }
+
+/* ============================================
+   Glassmorphism Utilities
+   ============================================ */
+
+/* Glass Base */
+.glass {
+  background: var(--glass-panel);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+}
+
+/* Glass Panel (Card) */
+.glass-panel {
+  background: var(--glass-panel);
+  backdrop-filter: blur(var(--blur-amount));
+  -webkit-backdrop-filter: blur(var(--blur-amount));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shine Effect on Hover */
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--glass-shine),
+    transparent
+  );
+  transform: rotate(45deg) translate(-100%, 0);
+  transition: transform 0.6s;
+  pointer-events: none;
+}
+
+.glass-panel:hover {
+  border-color: var(--glass-border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glass), var(--shadow-neon);
+}
+
+.glass-panel:hover::before {
+  transform: rotate(45deg) translate(100%, 0);
+}
+
+/* Glass Header */
+.glass-header {
+  background: var(--glass-header);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* Neon Text */
+.text-neon {
+  color: var(--color-primary);
+  text-shadow: 0 0 10px var(--color-primary-glow);
+}
+
+.text-neon-success {
+  color: var(--color-success);
+  text-shadow: 0 0 10px var(--color-success-glow);
+}
+
+.text-neon-warning {
+  color: var(--color-warning);
+  text-shadow: 0 0 10px var(--color-warning-glow);
+}
+
+.text-neon-error {
+  color: var(--color-error);
+  text-shadow: 0 0 10px var(--color-error-glow);
+}
+
+/* Modern Scrollbar for Glass */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+

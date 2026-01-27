@@ -170,6 +170,124 @@ export const getExportUrl = (dateStr) => {
   return `${baseUrl}/stats/export${dateStr ? `?date=${dateStr}` : ''}`
 }
 
+// 16. 차량 위치 정보 조회
+export const fetchVehiclePosition = () => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          x: Math.random() * 800 + 100,
+          y: Math.random() * 600 + 100,
+          angle: Math.random() * 360,
+          speed: (Math.random() * 15).toFixed(1),
+          battery: 85,
+          mode: 'AUTO',
+          timestamp: new Date().toISOString()
+        }
+      }
+    })
+  }
+  return apiClient.get('/vehicle/position')
+}
+
+// 17. 맵 데이터 조회 (경로, 장애물, waypoints 등)
+export const fetchMapData = () => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          waypoints: [
+            { id: 1, label: 'A', x: 200, y: 300, color: '#10b981' },
+            { id: 2, label: 'B', x: 500, y: 200, color: '#f59e0b' },
+            { id: 3, label: 'C', x: 750, y: 300, color: '#ef4444' },
+            { id: 4, label: 'D', x: 500, y: 600, color: '#3b82f6' }
+          ],
+          obstacles: [],
+          buildings: [
+            { id: 1, x: 150, y: 150, width: 100, height: 80, type: 'building' },
+            { id: 2, x: 650, y: 150, width: 120, height: 100, type: 'building' },
+            { id: 3, x: 150, y: 450, width: 90, height: 110, type: 'building' },
+            { id: 4, x: 700, y: 450, width: 100, height: 90, type: 'building' }
+          ]
+        }
+      }
+    })
+  }
+  return apiClient.get('/map/data')
+}
+
+// 18. 센서 상태 조회
+export const fetchSensorStatus = () => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          sensors: [
+            { name: 'LIDAR', status: 'ok', value: '정상 (360°)' },
+            { name: 'Camera', status: 'ok', value: '정상 (1080p)' },
+            { name: 'GPS', status: 'ok', value: '정확도 ±2m' },
+            { name: 'IMU', status: 'ok', value: '정상' }
+          ]
+        }
+      }
+    })
+  }
+  return apiClient.get('/sensors/status')
+}
+
+// ============== 라즈베리파이 명령 전송 API ==============
+
+// 19. 박스 개수 명령 전송 (라즈베리파이로 MQTT 전송)
+export const sendBoxCountCommand = (boxCount, vehicleId = 'AGV-001', priority = 'normal') => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          command_id: `CMD-MOCK-${Date.now()}`,
+          box_count: boxCount,
+          vehicle_id: vehicleId,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        },
+        message: `박스 개수 ${boxCount}개 명령이 전송되었습니다.`
+      }
+    })
+  }
+  return apiClient.post('/vehicle/command/box-count', {
+    box_count: boxCount,
+    vehicle_id: vehicleId,
+    priority: priority
+  })
+}
+
+// 20. 차량 제어 명령 전송 (start, stop, pause, resume, emergency_stop)
+export const sendVehicleCommand = (command, vehicleId = 'AGV-001', parameters = {}) => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          command_id: `CMD-MOCK-${Date.now()}`,
+          command: command,
+          vehicle_id: vehicleId,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        },
+        message: `'${command}' 명령이 전송되었습니다.`
+      }
+    })
+  }
+  return apiClient.post('/vehicle/command', {
+    command: command,
+    vehicle_id: vehicleId,
+    parameters: parameters
+  })
+}
+
 // 목업 모드 여부 내보내기 (UI에서 표시용)
 export const getMockMode = () => isMockMode
 

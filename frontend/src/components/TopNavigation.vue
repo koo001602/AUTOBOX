@@ -17,75 +17,35 @@ const isMockMode = getMockMode()
 </script>
 
 <template>
-  <header class="top-nav">
-    <!-- Left: Logo & Navigation -->
-    <div class="nav-left">
-      <div class="logo">
-        <img src="/assets/logo_original.png" alt="Autobox" class="logo-img" />
-        <span class="logo-text">Autobox</span>
-        <span class="logo-badge">CONTROL</span>
-        <span v-if="isMockMode" class="mock-badge">MOCK</span>
-      </div>
-
-      <nav class="nav-menu">
-        <RouterLink to="/" class="nav-item" active-class="active">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="7" height="9" x="3" y="3" rx="1" />
-            <rect width="7" height="5" x="14" y="3" rx="1" />
-            <rect width="7" height="9" x="14" y="12" rx="1" />
-            <rect width="7" height="5" x="3" y="16" rx="1" />
-          </svg>
-          <span>대시보드</span>
-        </RouterLink>
-
-        <RouterLink to="/live" class="nav-item" active-class="active">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m22 8-6 4 6 4V8Z" />
-            <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
-          </svg>
-          <span>실시간 영상</span>
-        </RouterLink>
-      </nav>
+  <!-- 상단 상태바 (간소화) -->
+  <header class="status-bar">
+    <div class="status-bar-left">
+      <img src="/assets/logo_original.png" alt="Autobox" class="status-logo" />
+      <span class="status-title">Autobox</span>
+      <span v-if="isMockMode" class="mock-badge">MOCK</span>
     </div>
-
-    <!-- Right: Status & Controls -->
-    <div class="nav-right">
-      <!-- System Status -->
+    
+    <div class="status-bar-right">
+      <!-- 시스템 상태 그룹 -->
       <div class="status-group">
-        <div class="status-item">
-          <span class="status-label">CONNECTION</span>
-          <div class="status-value" :class="isConnected ? 'status-online' : 'status-offline'">
-            <span class="status-dot" :class="isConnected ? 'online' : 'error'"></span>
-            <span class="status-text">{{ connectionText }}</span>
-          </div>
+        <!-- 연결 상태 -->
+        <div class="status-chip" :class="isConnected ? 'online' : 'offline'">
+          <span class="chip-dot"></span>
+          <span class="chip-text">{{ isConnected ? 'Online' : 'Error' }}</span>
         </div>
-
-        <div class="status-divider"></div>
-
-        <div class="status-item">
-          <span class="status-label">BATTERY</span>
-          <div class="status-value">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" :stroke="batteryLevel > 20 ? 'var(--color-success)' : 'var(--color-error)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="16" height="10" rx="2" ry="2" />
-              <line x1="22" x2="22" y1="11" y2="13" />
-            </svg>
-            <span class="battery-text" :class="batteryLevel > 20 ? 'text-success' : 'text-error'">{{ batteryLevel }}%</span>
-          </div>
-        </div>
-
-        <div class="status-divider"></div>
-
-        <div class="status-item system-status">
-          <span class="status-label">SYSTEM</span>
-          <div class="status-value status-online">
-            <span class="status-dot online"></span>
-            <span class="status-text">ONLINE</span>
-          </div>
+        
+        <!-- 배터리 -->
+        <div class="status-chip battery" :class="batteryLevel > 20 ? 'ok' : 'low'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="16" height="10" rx="2" ry="2" />
+            <line x1="22" x2="22" y1="11" y2="13" />
+          </svg>
+          <span class="chip-text">{{ batteryLevel }}%</span>
         </div>
       </div>
 
-      <!-- Alert Badge -->
-      <button class="alert-btn" :class="{ 'has-alerts': alertCount > 0 }" title="알림">
+      <!-- 알림 -->
+      <button class="status-btn" :class="{ 'has-alerts': alertCount > 0 }">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
@@ -93,9 +53,8 @@ const isMockMode = getMockMode()
         <span v-if="alertCount > 0" class="alert-badge">{{ alertCount > 99 ? '99+' : alertCount }}</span>
       </button>
 
-      <!-- Theme Toggle -->
-      <button class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? '라이트 모드' : '다크 모드'">
-        <!-- Sun Icon (Light Mode) -->
+      <!-- 테마 토글 -->
+      <button class="status-btn" @click="toggleTheme">
         <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="4"/>
           <path d="M12 2v2"/>
@@ -107,287 +66,340 @@ const isMockMode = getMockMode()
           <path d="m6.34 17.66-1.41 1.41"/>
           <path d="m19.07 4.93-1.41 1.41"/>
         </svg>
-        <!-- Moon Icon (Dark Mode) -->
         <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
         </svg>
       </button>
     </div>
   </header>
+
+  <!-- 하단 탭바 -->
+  <nav class="bottom-tab-bar">
+    <RouterLink to="/" class="tab-item" active-class="active">
+      <div class="tab-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="7" height="9" x="3" y="3" rx="1" />
+          <rect width="7" height="5" x="14" y="3" rx="1" />
+          <rect width="7" height="9" x="14" y="12" rx="1" />
+          <rect width="7" height="5" x="3" y="16" rx="1" />
+        </svg>
+      </div>
+      <span class="tab-label">대시보드</span>
+    </RouterLink>
+
+    <RouterLink to="/live" class="tab-item" active-class="active">
+      <div class="tab-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m22 8-6 4 6 4V8Z" />
+          <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
+        </svg>
+      </div>
+      <span class="tab-label">모니터링</span>
+    </RouterLink>
+
+    <RouterLink to="/settings" class="tab-item" active-class="active">
+      <div class="tab-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <span class="tab-label">설정</span>
+    </RouterLink>
+  </nav>
 </template>
 
 <style scoped>
 /* =============================================
-   미니멀 상단 네비게이션
+   Mobile App Style Navigation
    ============================================= */
 
-.top-nav {
+/* 상단 상태바 */
+.status-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   height: 56px;
-  padding: 0 20px;
-  background-color: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
+  background: var(--glass-header);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
+  z-index: 50;
+  gap: 16px;
+  overflow: hidden;
 }
 
-/* Left Section */
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.logo {
+.status-bar-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
-.logo-img {
-  height: 32px;
+.status-logo {
+  height: 28px;
   width: auto;
   object-fit: contain;
 }
 
-.logo-text {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
+:global([data-theme="dark"]) .status-logo {
+  filter: brightness(1.2);
 }
 
-.logo-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 3px 6px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
+.status-title {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .mock-badge {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   padding: 3px 6px;
-  background-color: #f59e0b;
-  border: 1px solid #d97706;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.5);
   border-radius: 4px;
-  color: white;
+  color: #f59e0b;
   letter-spacing: 0.05em;
 }
 
-/* Navigation Menu */
-.nav-menu {
-  display: flex;
-  gap: 4px;
-}
-
-.nav-item {
+.status-bar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  min-height: 36px;
-  border-radius: 6px;
-  color: var(--text-muted);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.15s ease;
-}
-
-.nav-item:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.nav-item.active {
-  background-color: var(--color-primary);
-  color: white;
-}
-
-.nav-item svg {
+  gap: 8px;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
 }
 
-/* Right Section */
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
+/* 상태 그룹 */
 .status-group {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 6px 14px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  gap: 6px;
+  padding: 4px;
+  background: var(--overlay-dark);
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
 }
 
-.status-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.status-label {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.status-value {
+/* 상태 칩 */
+.status-chip {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 11px;
   font-weight: 600;
   font-family: var(--font-family-mono);
+  white-space: nowrap;
 }
 
-.status-dot {
+.status-chip.online {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.status-chip.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+.status-chip.battery.ok {
+  color: var(--color-success);
+}
+
+.status-chip.battery.low {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+.chip-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  flex-shrink: 0;
 }
 
-.status-dot.online {
-  background-color: var(--color-success);
+.chip-text {
+  flex-shrink: 0;
 }
 
-.status-dot.error {
-  background-color: var(--color-error);
-}
-
-.status-online .status-text {
-  color: var(--color-success);
-}
-
-.status-offline .status-text {
-  color: var(--color-error);
-}
-
-.battery-text {
-  font-weight: 600;
-}
-
-.text-success {
-  color: var(--color-success);
-}
-
-.text-error {
-  color: var(--color-error);
-}
-
-.status-divider {
-  width: 1px;
-  height: 24px;
-  background-color: var(--border-color);
-}
-
-/* Alert Button */
-.alert-btn {
+/* 상태 버튼 */
+.status-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s;
 }
 
-.alert-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-.alert-btn:hover {
-  background-color: var(--bg-elevated);
+.status-btn:hover {
+  background: var(--overlay-lighter);
   color: var(--text-primary);
 }
 
-.alert-btn.has-alerts {
+.status-btn.has-alerts {
   color: var(--color-error);
-  border-color: var(--color-error);
 }
 
 .alert-badge {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: 0;
+  right: 0;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  background-color: var(--color-error);
+  background: var(--color-error);
   border-radius: 8px;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Theme Toggle */
-.theme-toggle {
+/* =============================================
+   하단 탭바
+   ============================================= */
+
+.bottom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 70px;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  background: var(--glass-header);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  z-index: 100;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  height: 100%;
+  padding: 8px 0;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  width: 48px;
+  height: 32px;
+  border-radius: 16px;
+  transition: all 0.2s ease;
 }
 
-.theme-toggle svg {
-  width: 16px;
-  height: 16px;
+.tab-item svg {
+  width: 22px;
+  height: 22px;
+  transition: all 0.2s ease;
 }
 
-.theme-toggle:hover {
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
+.tab-label {
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
-/* 태블릿 세로 모드 */
-@media (max-width: 1024px) {
-  .status-item {
+/* Active State */
+.tab-item.active {
+  color: var(--color-primary);
+}
+
+.tab-item.active .tab-icon {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.tab-item.active svg {
+  transform: scale(1.1);
+}
+
+.tab-item.active .tab-label {
+  font-weight: 700;
+}
+
+/* Hover State */
+.tab-item:hover:not(.active) {
+  color: var(--text-secondary);
+}
+
+.tab-item:hover:not(.active) .tab-icon {
+  background: var(--overlay-lighter);
+}
+
+/* Active Indicator */
+.tab-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background: var(--color-primary);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .status-bar {
+    padding: 0 12px;
+  }
+  
+  .status-title {
     display: none;
   }
   
-  .status-item.system-status {
-    display: flex;
+  .status-chip .chip-text {
+    display: none;
   }
-}
-
-@media (max-width: 768px) {
+  
+  .status-chip {
+    padding: 6px;
+  }
+  
   .status-group {
+    gap: 4px;
+    padding: 3px;
+  }
+}
+
+@media (max-width: 400px) {
+  .mock-badge {
     display: none;
   }
   
-  .logo-badge,
-  .mock-badge {
+  .status-group {
     display: none;
   }
 }

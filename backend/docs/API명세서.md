@@ -8,7 +8,8 @@
 | Base URL | `http://localhost:8000/api/v1` |
 | 인증 | 없음 (내부 시스템) |
 | 응답 형식 | JSON |
-| 문서 버전 | **1.1** |
+| 문서 버전 | **1.2** |
+| 최종 수정일 | 2026-01-26 |
 
 ---
 
@@ -459,7 +460,6 @@ PUT /system/status
 
 ```
 ws://localhost:8000/ws/dashboard
-
 ```
 
 ### waybill_update
@@ -474,7 +474,6 @@ ws://localhost:8000/ws/dashboard
     "destination": "seoul-a"
   }
 }
-
 ```
 
 ### system_status
@@ -489,12 +488,252 @@ ws://localhost:8000/ws/dashboard
     "operation_status": "TRANSPORT"
   }
 }
+```
 
+### vehicle_position (신규)
+
+```json
+{
+  "type": "vehicle_position",
+  "data": {
+    "vehicle_id": "AGV-001",
+    "x": 450.0,
+    "y": 350.0,
+    "angle": 45.2,
+    "speed": 12.5,
+    "battery": 85,
+    "mode": "AUTO",
+    "timestamp": "2026-01-26T12:00:00"
+  }
+}
+```
+
+### sensor_status (신규)
+
+```json
+{
+  "type": "sensor_status",
+  "data": {
+    "vehicle_id": "AGV-001",
+    "sensor_name": "LIDAR",
+    "status": "ok",
+    "value": "정상 (360°)",
+    "health": 100,
+    "timestamp": "2026-01-26T12:00:00"
+  }
+}
+```
+
+### command_sent (신규)
+
+```json
+{
+  "type": "command_sent",
+  "data": {
+    "command_id": "CMD-A1B2C3D4",
+    "command_type": "box_count",
+    "box_count": 10,
+    "vehicle_id": "AGV-001",
+    "timestamp": "2026-01-26T12:00:00"
+  }
+}
 ```
 
 ---
 
-## 10. 에러 코드
+## 10. 차량/맵/센서 API (실시간 모니터링)
+
+### 10.1 차량 위치 조회 (VH-001)
+
+| 항목 | 내용 |
+| --- | --- |
+| Method | `GET` |
+| URL | `/vehicle/position` |
+
+**Query Parameters**
+
+| 파라미터 | 설명 |
+| --- | --- |
+| vehicle_id | 차량 ID (선택, 미지정시 최신 데이터) |
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "x": 450.0,
+    "y": 350.0,
+    "angle": 45.2,
+    "speed": 12.5,
+    "battery": 85,
+    "mode": "AUTO",
+    "timestamp": "2026-01-26T12:00:00"
+  }
+}
+```
+
+---
+
+### 10.2 차량 위치 업데이트 (VH-002)
+
+| 항목 | 내용 |
+| --- | --- |
+| Method | `PUT` |
+| URL | `/vehicle/position` |
+
+**Request Body**
+
+```json
+{
+  "vehicle_id": "AGV-001",
+  "x": 500.0,
+  "y": 400.0,
+  "angle": 90.0,
+  "speed": 10.5,
+  "battery": 80,
+  "mode": "AUTO"
+}
+```
+
+---
+
+### 10.3 맵 데이터 조회 (MAP-001)
+
+| 항목 | 내용 |
+| --- | --- |
+| Method | `GET` |
+| URL | `/map/data` |
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "map_id": "default",
+    "waypoints": [
+      { "id": 1, "label": "A", "x": 200, "y": 300, "color": "#10b981", "type": "pickup" },
+      { "id": 2, "label": "B", "x": 500, "y": 200, "color": "#f59e0b", "type": "dropoff" }
+    ],
+    "buildings": [
+      { "id": 1, "x": 150, "y": 150, "width": 100, "height": 80, "type": "building" }
+    ],
+    "obstacles": []
+  }
+}
+```
+
+---
+
+### 10.4 센서 상태 조회 (SEN-001)
+
+| 항목 | 내용 |
+| --- | --- |
+| Method | `GET` |
+| URL | `/sensors/status` |
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "sensors": [
+      { "name": "LIDAR", "status": "ok", "value": "정상 (360°)", "health": 100 },
+      { "name": "Camera", "status": "ok", "value": "정상 (1080p)", "health": 100 },
+      { "name": "GPS", "status": "ok", "value": "정확도 ±2m", "health": 95 },
+      { "name": "IMU", "status": "ok", "value": "정상", "health": 100 }
+    ],
+    "vehicle_id": "AGV-001",
+    "timestamp": "2026-01-26T12:00:00"
+  }
+}
+```
+
+---
+
+## 11. 명령 전송 API (MQTT 연동)
+
+### 11.1 박스 개수 명령 전송 (CMD-001)
+
+프론트엔드에서 라즈베리파이로 박스 개수를 전송합니다.
+
+| 항목 | 내용 |
+| --- | --- |
+| Method | `POST` |
+| URL | `/vehicle/command/box-count` |
+
+**Request Body**
+
+```json
+{
+  "box_count": 10,
+  "vehicle_id": "AGV-001",
+  "priority": "normal"
+}
+```
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "command_id": "CMD-A1B2C3D4",
+    "box_count": 10,
+    "vehicle_id": "AGV-001",
+    "status": "sent",
+    "sent_at": "2026-01-26T12:00:00"
+  },
+  "message": "박스 개수 10개 명령이 전송되었습니다."
+}
+```
+
+**MQTT 토픽**: `autobox/command/box-count`
+
+---
+
+### 11.2 차량 제어 명령 전송 (CMD-002)
+
+| 항목 | 내용 |
+| --- | --- |
+| Method | `POST` |
+| URL | `/vehicle/command` |
+
+**Request Body**
+
+```json
+{
+  "command": "start",
+  "vehicle_id": "AGV-001",
+  "parameters": {}
+}
+```
+
+**허용 명령**: `start`, `stop`, `pause`, `resume`, `emergency_stop`, `reset`
+
+**Response**
+
+```json
+{
+  "success": true,
+  "data": {
+    "command_id": "CMD-E5F6G7H8",
+    "command": "start",
+    "vehicle_id": "AGV-001",
+    "status": "sent",
+    "sent_at": "2026-01-26T12:00:00"
+  },
+  "message": "'start' 명령이 전송되었습니다."
+}
+```
+
+**MQTT 토픽**: `autobox/command/vehicle`
+
+---
+
+## 12. 에러 코드
 
 | 코드 | 설명 |
 | --- | --- |
@@ -502,7 +741,10 @@ ws://localhost:8000/ws/dashboard
 | REGION_NOT_FOUND | 구역을 찾을 수 없음 |
 | CAMERA_NOT_FOUND | 카메라를 찾을 수 없음 |
 | ALERT_NOT_FOUND | 알림을 찾을 수 없음 |
+| VEHICLE_NOT_FOUND | 차량을 찾을 수 없음 |
 | INVALID_STATUS | 잘못된 상태 값 |
+| INVALID_COMMAND | 허용되지 않는 명령 |
 | DUPLICATE_WAYBILL_NO | 중복 운송장 번호 |
 | INVALID_CONFIDENCE | 신뢰도 값 범위 오류 |
+| MQTT_CONNECTION_ERROR | MQTT 연결 오류 |
 | DATABASE_ERROR | 데이터베이스 오류 |

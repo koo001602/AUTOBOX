@@ -5,6 +5,7 @@ from app.models.device import DeviceStatus
 from app.models.region import Region
 from app.models.camera import Camera
 from app.models.alert import Alert
+from app.models.vehicle import VehiclePosition, MapData, SensorStatus
 
 __all__ = [
     "LogisticsItem",
@@ -13,5 +14,8 @@ __all__ = [
     "DeviceStatus",
     "Region",
     "Camera",
-    "Alert"
+    "Alert",
+    "VehiclePosition",
+    "MapData",
+    "SensorStatus",
 ]

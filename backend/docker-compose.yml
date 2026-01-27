@@ -1,21 +1,31 @@
+# ============================================================
 # AutoBox Full Stack Docker Compose
-# Usage: cd backend && docker-compose up -d --build
+# ============================================================
+# 실행 방법: cd backend && docker-compose up -d --build
+# 중지 방법: cd backend && docker-compose down
+# 로그 확인: docker logs autobox-backend --tail 50
 # .env 파일 없이 모든 환경 변수가 여기에 정의됨
+# ============================================================
 
 services:
+  # ============================================================
   # MQTT Broker (Mosquitto)
+  # - 라즈베리파이 ↔ 백엔드 간 실시간 통신을 담당
+  # - 1883: 내부 통신용 (비암호화)
+  # - 8883: 외부 통신용 (TLS 암호화, 라즈베리파이 연결)
+  # ============================================================
   mosquitto:
-    image: eclipse-mosquitto:2
+    image: eclipse-mosquitto:2                    # Mosquitto MQTT 브로커 v2
     container_name: autobox-mqtt
-    restart: unless-stopped
+    restart: unless-stopped                       # 컨테이너 자동 재시작
     ports:
-      - "1883:1883"   # Internal (non-TLS) - localhost only in production
-      - "8883:8883"   # External (TLS) - for Raspberry Pi connection
+      - "1883:1883"                               # 내부 MQTT 포트 (비암호화)
+      - "8883:8883"                               # 외부 MQTT 포트 (TLS)
     volumes:
-      - ./mqtt/config:/mosquitto/config:ro
-      - ./mqtt/data:/mosquitto/data
-      - ./mqtt/log:/mosquitto/log
-      - ./mqtt/certs:/mosquitto/certs:ro
+      - ./mqtt/config:/mosquitto/config:ro        # MQTT 설정 파일
+      - ./mqtt/data:/mosquitto/data               # MQTT 데이터 저장소
+      - ./mqtt/log:/mosquitto/log                 # MQTT 로그
+      - ./mqtt/certs:/mosquitto/certs:ro          # TLS 인증서
     healthcheck:
       test: ["CMD-SHELL", "echo 1"]
       interval: 5s
@@ -25,24 +35,29 @@ services:
     networks:
       - autobox-network
 
-  # MySQL Database (optional - use external DB in production)
+  # ============================================================
+  # MySQL Database (선택사항)
+  # - 로컬 개발용 MySQL 서버
+  # - 프로덕션에서는 외부 DB 사용 권장 (Azure, AWS RDS 등)
+  # - 실행: docker-compose --profile with-db up -d
+  # ============================================================
   mysql:
     image: mysql:8.0
     container_name: autobox-mysql
     restart: unless-stopped
     profiles:
-      - with-db
+      - with-db                                   # --profile with-db 옵션으로만 실행
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: autobox
-      TZ: Asia/Seoul
+      MYSQL_ROOT_PASSWORD: root                   # MySQL root 비밀번호
+      MYSQL_DATABASE: autobox                     # 생성할 데이터베이스 이름
+      TZ: Asia/Seoul                              # 타임존 설정
     ports:
-      - "3306:3306"
+      - "3306:3306"                               # MySQL 기본 포트
     volumes:
-      - autobox-mysql-data:/var/lib/mysql
-      - ./database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - autobox-mysql-data:/var/lib/mysql         # 데이터 영구 저장
+      - ./database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro  # 초기화 SQL
     command:
-      - --character-set-server=utf8mb4
+      - --character-set-server=utf8mb4            # 한글 지원
       - --collation-server=utf8mb4_0900_ai_ci
       - --default-authentication-plugin=mysql_native_password
     healthcheck:
@@ -53,35 +68,54 @@ services:
     networks:
       - autobox-network
 
+  # ============================================================
   # FastAPI Backend
+  # - Python FastAPI 기반 REST API 서버
+  # - 호스트 포트 8080 → 컨테이너 포트 8000
+  # - API 문서: http://localhost:8080/docs
+  # ============================================================
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: .                                  # 빌드 컨텍스트 (현재 디렉토리)
+      dockerfile: Dockerfile                      # Dockerfile 경로
     container_name: autobox-backend
     restart: unless-stopped
     environment:
-      # Database
+      # ----------------------------------------------------------
+      # 데이터베이스 설정
+      # ----------------------------------------------------------
+      # 형식: mysql+pymysql://사용자:비밀번호@호스트:포트/DB이름?charset=utf8mb4
       DATABASE_URL: mysql+pymysql://S14P11A403:1UB5b1SMZQ@ssafy-mysql-db.mysql.database.azure.com:3306/S14P11A403?charset=utf8mb4
-      # Server
-      HOST: 0.0.0.0
-      PORT: "8000"
-      DEBUG: "false"
-      # CORS - 모든 origin 허용
+      
+      # ----------------------------------------------------------
+      # 서버 설정
+      # ----------------------------------------------------------
+      HOST: 0.0.0.0                               # 바인딩 주소 (모든 인터페이스)
+      PORT: "8000"                                # 컨테이너 내부 포트
+      DEBUG: "false"                              # 디버그 모드 (true: 상세 에러 표시)
+      
+      # ----------------------------------------------------------
+      # CORS 설정 (Cross-Origin Resource Sharing)
+      # ----------------------------------------------------------
+      # "*": 모든 도메인 허용
+      # 특정 도메인만 허용: "http://localhost,http://localhost:80"
       CORS_ORIGINS: "*"
-      # MQTT Configuration
-      MQTT_BROKER_HOST: mosquitto
-      MQTT_BROKER_PORT: "1883"
-      MQTT_TOPIC_PREFIX: autobox
-      MQTT_CLIENT_ID: autobox-backend
-      MQTT_USERNAME: backend
-      MQTT_PASSWORD: ""
-      MQTT_ENABLED: "true"
+      
+      # ----------------------------------------------------------
+      # MQTT 설정 (라즈베리파이 통신용)
+      # ----------------------------------------------------------
+      MQTT_BROKER_HOST: mosquitto                 # MQTT 브로커 호스트 (Docker 서비스명)
+      MQTT_BROKER_PORT: "1883"                    # MQTT 브로커 포트
+      MQTT_TOPIC_PREFIX: autobox                  # MQTT 토픽 접두사 (예: autobox/command)
+      MQTT_CLIENT_ID: autobox-backend             # MQTT 클라이언트 ID
+      MQTT_USERNAME: backend                      # MQTT 인증 사용자명
+      MQTT_PASSWORD: ""                           # MQTT 인증 비밀번호 (빈 값 = 인증 없음)
+      MQTT_ENABLED: "true"                        # MQTT 활성화 여부
     ports:
-      - "8000:8000"
+      - "8080:8000"                               # 호스트:컨테이너 포트 매핑
     depends_on:
       mosquitto:
-        condition: service_healthy
+        condition: service_healthy                # MQTT 브로커 정상 상태 후 시작
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -90,27 +124,42 @@ services:
     networks:
       - autobox-network
 
+  # ============================================================
   # Vue.js Frontend
+  # - Vue 3 기반 대시보드 웹 애플리케이션
+  # - Nginx로 정적 파일 서빙
+  # - 접속: http://localhost (포트 80)
+  # ============================================================
   frontend:
     build:
-      context: ../frontend
+      context: ../frontend                        # 프론트엔드 소스 디렉토리
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:8000/api/v1
+        # 빌드 시 백엔드 API URL (빌드 타임에 하드코딩됨)
+        VITE_API_URL: http://localhost:8080/api/v1
     container_name: autobox-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "80:80"                                   # HTTP 기본 포트
     depends_on:
-      - backend
+      - backend                                   # 백엔드 시작 후 실행
     networks:
       - autobox-network
 
+# ============================================================
+# 볼륨 정의
+# - 컨테이너가 삭제되어도 데이터 유지
+# ============================================================
 volumes:
   autobox-mysql-data:
-    name: autobox-mysql-data
+    name: autobox-mysql-data                      # MySQL 데이터 영구 저장
 
+# ============================================================
+# 네트워크 정의
+# - 모든 서비스가 같은 네트워크에서 통신
+# - 서비스명으로 서로 접근 가능 (예: mosquitto, backend)
+# ============================================================
 networks:
   autobox-network:
     name: autobox-network
-    driver: bridge
+    driver: bridge                                # 브릿지 네트워크 (기본)

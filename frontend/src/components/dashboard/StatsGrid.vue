@@ -1,0 +1,172 @@
+<script setup>
+defineProps({
+  summary: {
+    type: Object,
+    required: true
+  }
+})
+
+const formatProcessTime = (seconds) => {
+  if (!seconds) return '-'
+  if (seconds < 60) return `${seconds}초`
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}분 ${secs}초`
+}
+</script>
+
+<template>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon total">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m7.5 4.27 9 5.15" />
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ summary.total }}</span>
+        <span class="stat-label">총 처리량</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon success">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value success">{{ summary.completed }}</span>
+        <span class="stat-label">완료</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon rate">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20v-6M6 20V10M18 20V4"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ summary.successRate }}<small>%</small></span>
+        <span class="stat-label">성공률</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon time">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ formatProcessTime(summary.avgProcessTime) }}</span>
+        <span class="stat-label">평균 처리 시간</span>
+      </div>
+    </div>
+
+    <div class="stat-card" :class="{ 'has-error': summary.error > 0 }">
+      <div class="stat-icon error">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value error">{{ summary.error }}</span>
+        <span class="stat-label">오류</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--glass-panel);
+  backdrop-filter: blur(var(--blur-amount));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.stat-card.has-error {
+  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.stat-icon.total { background: rgba(99, 102, 241, 0.1); color: var(--color-primary); }
+.stat-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
+.stat-icon.rate { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
+.stat-icon.time { background: rgba(14, 165, 233, 0.1); color: var(--color-info); }
+.stat-icon.error { background: rgba(239, 68, 68, 0.1); color: var(--color-error); }
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  font-family: var(--font-family-mono);
+}
+
+.stat-value small {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.stat-value.success { color: var(--color-success); }
+.stat-value.error { color: var(--color-error); }
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-card:last-child { grid-column: span 2; }
+}
+</style>

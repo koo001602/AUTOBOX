@@ -50,5 +50,7 @@ onMounted(() => {
   flex-direction: column;
   position: relative;
   z-index: 1;
+  /* 하단 탭바 공간 확보 */
+  padding-bottom: 70px;
 }
 </style>

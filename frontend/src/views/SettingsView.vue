@@ -450,18 +450,18 @@ onMounted(() => {
 .settings-page {
   height: 100%;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px 20px;
 }
 
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .settings-title {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
@@ -488,36 +488,39 @@ onMounted(() => {
 }
 
 .settings-content {
-  max-width: 600px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 1200px;
 }
 
 .settings-section {
-  margin-bottom: 28px;
+  margin-bottom: 0;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin: 0 0 12px 4px;
+  margin: 0 0 8px 4px;
 }
 
 .settings-card {
   background: var(--glass-panel);
   backdrop-filter: blur(var(--blur-amount));
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border-radius: 12px;
   overflow: hidden;
 }
 
 /* 입력 필드 스타일 */
 .setting-input-item {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--glass-border);
 }
 
@@ -527,10 +530,10 @@ onMounted(() => {
 
 .input-label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -542,12 +545,12 @@ onMounted(() => {
 
 .setting-input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: var(--overlay-dark);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   font-family: var(--font-family-mono);
   transition: all 0.2s;
 }
@@ -563,34 +566,34 @@ onMounted(() => {
 }
 
 .endpoint-preview {
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: var(--overlay-lighter);
-  border-radius: 10px;
+  border-radius: 8px;
   font-family: var(--font-family-mono);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-primary);
   word-break: break-all;
 }
 
 /* 액션 아이템 */
 .setting-action-item {
-  padding: 16px 20px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .test-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 6px;
+  padding: 10px 16px;
   background: var(--overlay-lighter);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -637,7 +640,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 16px;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -657,18 +660,19 @@ onMounted(() => {
 .setting-info {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .setting-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background: var(--overlay-lighter);
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .setting-icon.mode {
@@ -708,13 +712,14 @@ onMounted(() => {
 
 /* Toggle Switch */
 .toggle-switch {
-  width: 50px;
-  height: 28px;
+  width: 44px;
+  height: 24px;
   background: var(--overlay-dark);
-  border-radius: 14px;
-  padding: 3px;
+  border-radius: 12px;
+  padding: 2px;
   transition: all 0.2s;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .toggle-switch.active {
@@ -722,8 +727,8 @@ onMounted(() => {
 }
 
 .toggle-thumb {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   background: white;
   border-radius: 50%;
   transition: transform 0.2s;
@@ -731,10 +736,16 @@ onMounted(() => {
 }
 
 .toggle-switch.active .toggle-thumb {
-  transform: translateX(22px);
+  transform: translateX(20px);
 }
 
 /* Responsive */
+@media (max-width: 900px) {
+  .settings-content {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 480px) {
   .settings-header {
     flex-direction: column;

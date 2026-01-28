@@ -2,11 +2,14 @@
    AutoBox Database (MySQL 8.x)
    ========================================================= */
 
-CREATE DATABASE IF NOT EXISTS autobox
-  DEFAULT CHARACTER SET utf8mb4
-  DEFAULT COLLATE utf8mb4_0900_ai_ci;
+-- ★ Azure MySQL 사용 시 (SSAFY 프로젝트)
+USE S14P11A403;
 
-USE autobox;
+-- 로컬 개발용(with-db 프로필)은 아래 주석 해제:
+-- CREATE DATABASE IF NOT EXISTS autobox
+--   DEFAULT CHARACTER SET utf8mb4
+--   DEFAULT COLLATE utf8mb4_0900_ai_ci;
+-- USE autobox;
 
 /* =========================================================
    1) LogisticsItem (물류 아이템 메인)

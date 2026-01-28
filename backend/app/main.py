@@ -66,6 +66,12 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions."""
+    # 에러 응답에도 CORS 헤더 포함
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+        "Access-Control-Allow-Headers": "*",
+    }
     return JSONResponse(
         status_code=500,
         content={
@@ -75,7 +81,8 @@ async def global_exception_handler(request: Request, exc: Exception):
                 "code": "INTERNAL_ERROR",
                 "message": str(exc) if settings.DEBUG else "내부 서버 오류가 발생했습니다"
             }
-        }
+        },
+        headers=headers
     )
 
 

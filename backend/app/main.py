@@ -52,13 +52,13 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS middleware - 모든 origin 허용
+# CORS middleware - 환경변수에서 허용 도메인 로드
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 
@@ -66,6 +66,15 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions."""
+    # 에러 응답에도 CORS 헤더 포함 (요청 Origin 확인)
+    origin = request.headers.get("origin", "")
+    allowed_origin = origin if origin in settings.cors_origins_list else ""
+    
+    headers = {
+        "Access-Control-Allow-Origin": allowed_origin,
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, X-Requested-With",
+    }
     return JSONResponse(
         status_code=500,
         content={
@@ -75,7 +84,8 @@ async def global_exception_handler(request: Request, exc: Exception):
                 "code": "INTERNAL_ERROR",
                 "message": str(exc) if settings.DEBUG else "내부 서버 오류가 발생했습니다"
             }
-        }
+        },
+        headers=headers
     )
 
 

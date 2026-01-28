@@ -6,7 +6,7 @@ from io import BytesIO
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func, case, text, literal_column
 
 from app.database import get_db
 from app.models.waybill import LogisticsItem, LogisticsStatus
@@ -79,7 +79,7 @@ async def get_daily_stats(
         func.avg(
             case(
                 (LogisticsItem.completed_at.isnot(None),
-                 func.timestampdiff(func.text("SECOND"), LogisticsItem.created_at, LogisticsItem.completed_at)),
+                 func.timestampdiff(literal_column("SECOND"), LogisticsItem.created_at, LogisticsItem.completed_at)),
                 else_=None
             )
         ).label("avg_process_time")

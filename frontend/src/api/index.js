@@ -20,8 +20,9 @@ if (isMockMode) {
 }
 
 // 백엔드 주소 설정 (환경변수로 관리 - 배포 환경 대응)
+// Docker 환경에서는 nginx 프록시를 통해 /api/v1로 접근
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -166,7 +167,7 @@ export const getExportUrl = (dateStr) => {
     console.log('🎭 목업 모드: 엑셀 다운로드는 실제 백엔드 연결 시 사용 가능합니다.')
     return '#'
   }
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
+  const baseUrl = import.meta.env.VITE_API_URL || '/api/v1'
   return `${baseUrl}/stats/export${dateStr ? `?date=${dateStr}` : ''}`
 }
 

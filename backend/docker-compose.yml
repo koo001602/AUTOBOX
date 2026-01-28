@@ -4,7 +4,7 @@
 # 실행 방법: cd backend && docker-compose up -d --build
 # 중지 방법: cd backend && docker-compose down
 # 로그 확인: docker logs autobox-backend --tail 50
-# .env 파일 없이 모든 환경 변수가 여기에 정의됨
+# 환경 변수: .env 파일에서 로드됨
 # ============================================================
 
 services:
@@ -48,9 +48,9 @@ services:
     profiles:
       - with-db                                   # --profile with-db 옵션으로만 실행
     environment:
-      MYSQL_ROOT_PASSWORD: root                   # MySQL root 비밀번호
-      MYSQL_DATABASE: autobox                     # 생성할 데이터베이스 이름
-      TZ: Asia/Seoul                              # 타임존 설정
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-autobox}
+      TZ: Asia/Seoul
     ports:
       - "3306:3306"                               # MySQL 기본 포트
     volumes:
@@ -61,7 +61,7 @@ services:
       - --collation-server=utf8mb4_0900_ai_ci
       - --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -81,37 +81,22 @@ services:
     container_name: autobox-backend
     restart: unless-stopped
     environment:
-      # ----------------------------------------------------------
-      # 데이터베이스 설정
-      # ----------------------------------------------------------
-      # 형식: mysql+pymysql://사용자:비밀번호@호스트:포트/DB이름?charset=utf8mb4
-      # Azure MySQL SSL은 database.py에서 자동 처리
-      DATABASE_URL: mysql+pymysql://S14P11A403:1UB5b1SMZQ@ssafy-mysql-db.mysql.database.azure.com:3306/S14P11A403?charset=utf8mb4
-      
-      # ----------------------------------------------------------
+      # 데이터베이스 설정 (.env에서 로드)
+      DATABASE_URL: ${DATABASE_URL}
       # 서버 설정
-      # ----------------------------------------------------------
-      HOST: 0.0.0.0                               # 바인딩 주소 (모든 인터페이스)
-      PORT: "8000"                                # 컨테이너 내부 포트
-      DEBUG: "false"                              # 디버그 모드 (true: 상세 에러 표시)
-      
-      # ----------------------------------------------------------
-      # CORS 설정 (Cross-Origin Resource Sharing)
-      # ----------------------------------------------------------
-      # "*": 모든 도메인 허용
-      # 특정 도메인만 허용: "http://localhost,http://localhost:80"
-      CORS_ORIGINS: "*"
-      
-      # ----------------------------------------------------------
-      # MQTT 설정 (라즈베리파이 통신용)
-      # ----------------------------------------------------------
-      MQTT_BROKER_HOST: mosquitto                 # MQTT 브로커 호스트 (Docker 서비스명)
-      MQTT_BROKER_PORT: "1883"                    # MQTT 브로커 포트
-      MQTT_TOPIC_PREFIX: autobox                  # MQTT 토픽 접두사 (예: autobox/command)
-      MQTT_CLIENT_ID: autobox-backend             # MQTT 클라이언트 ID
-      MQTT_USERNAME: backend                      # MQTT 인증 사용자명
-      MQTT_PASSWORD: ""                           # MQTT 인증 비밀번호 (빈 값 = 인증 없음)
-      MQTT_ENABLED: "true"                        # MQTT 활성화 여부
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8000}
+      DEBUG: ${DEBUG:-false}
+      # CORS 설정
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      # MQTT 설정
+      MQTT_BROKER_HOST: ${MQTT_BROKER_HOST:-mosquitto}
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT:-1883}
+      MQTT_TOPIC_PREFIX: ${MQTT_TOPIC_PREFIX:-autobox}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-autobox-backend}
+      MQTT_USERNAME: ${MQTT_USERNAME:-backend}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_ENABLED: ${MQTT_ENABLED:-true}
     ports:
       - "8080:8000"                               # 호스트:컨테이너 포트 매핑
     depends_on:
@@ -136,8 +121,7 @@ services:
       context: ../frontend                        # 프론트엔드 소스 디렉토리
       dockerfile: Dockerfile
       args:
-        # 빌드 시 백엔드 API URL (nginx 프록시를 통해 접근)
-        VITE_API_URL: /api/v1
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
     container_name: autobox-frontend
     restart: unless-stopped
     ports:

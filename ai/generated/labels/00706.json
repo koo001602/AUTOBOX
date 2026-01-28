@@ -1,0 +1,67 @@
+{
+  "image_path": "images/00706.jpg",
+  "width": 1282,
+  "height": 858,
+  "fields": [
+    {
+      "field_name": "tracking_number",
+      "text": "64699537",
+      "bbox": [
+        56,
+        189,
+        486,
+        289
+      ]
+    },
+    {
+      "field_name": "region_code",
+      "text": "김해1",
+      "bbox": [
+        843,
+        130,
+        1193,
+        279
+      ]
+    },
+    {
+      "field_name": "recipient_name",
+      "text": "김도현",
+      "bbox": [
+        152,
+        311,
+        438,
+        406
+      ]
+    },
+    {
+      "field_name": "recipient_address",
+      "text": "대구광역시 남구 한천길 440 4",
+      "bbox": [
+        52,
+        426,
+        1133,
+        536
+      ]
+    },
+    {
+      "field_name": "sender_name",
+      "text": "윤숙자",
+      "bbox": [
+        204,
+        563,
+        483,
+        658
+      ]
+    },
+    {
+      "field_name": "sender_address",
+      "text": "부산광역시 부산진구 서천로 433 28",
+      "bbox": [
+        50,
+        690,
+        1237,
+        820
+      ]
+    }
+  ]
+}

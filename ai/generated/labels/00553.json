@@ -1,0 +1,67 @@
+{
+  "image_path": "images/00553.jpg",
+  "width": 1282,
+  "height": 858,
+  "fields": [
+    {
+      "field_name": "tracking_number",
+      "text": "60014651",
+      "bbox": [
+        56,
+        189,
+        486,
+        289
+      ]
+    },
+    {
+      "field_name": "region_code",
+      "text": "김해4",
+      "bbox": [
+        843,
+        130,
+        1193,
+        279
+      ]
+    },
+    {
+      "field_name": "recipient_name",
+      "text": "박승민",
+      "bbox": [
+        152,
+        311,
+        438,
+        406
+      ]
+    },
+    {
+      "field_name": "recipient_address",
+      "text": "부산광역시 사상구 안산로 35",
+      "bbox": [
+        52,
+        426,
+        1133,
+        536
+      ]
+    },
+    {
+      "field_name": "sender_name",
+      "text": "한미숙",
+      "bbox": [
+        204,
+        563,
+        483,
+        658
+      ]
+    },
+    {
+      "field_name": "sender_address",
+      "text": "대구광역시 달성군 김문길 288",
+      "bbox": [
+        50,
+        690,
+        1237,
+        820
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "image_path": "images/00805.jpg",
+  "width": 1282,
+  "height": 858,
+  "fields": [
+    {
+      "field_name": "tracking_number",
+      "text": "70051109",
+      "bbox": [
+        56,
+        189,
+        486,
+        289
+      ]
+    },
+    {
+      "field_name": "region_code",
+      "text": "고양4",
+      "bbox": [
+        843,
+        130,
+        1193,
+        279
+      ]
+    },
+    {
+      "field_name": "recipient_name",
+      "text": "고민재",
+      "bbox": [
+        152,
+        311,
+        438,
+        406
+      ]
+    },
+    {
+      "field_name": "recipient_address",
+      "text": "대전광역시 동구 이산로 73",
+      "bbox": [
+        52,
+        426,
+        1133,
+        536
+      ]
+    },
+    {
+      "field_name": "sender_name",
+      "text": "박정식",
+      "bbox": [
+        204,
+        563,
+        483,
+        658
+      ]
+    },
+    {
+      "field_name": "sender_address",
+      "text": "대구광역시 달성군 강산길 290 23",
+      "bbox": [
+        50,
+        690,
+        1237,
+        820
+      ]
+    }
+  ]
+}

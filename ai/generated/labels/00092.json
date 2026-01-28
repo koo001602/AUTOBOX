@@ -1,0 +1,67 @@
+{
+  "image_path": "images/00092.jpg",
+  "width": 1282,
+  "height": 858,
+  "fields": [
+    {
+      "field_name": "tracking_number",
+      "text": "26410894",
+      "bbox": [
+        56,
+        189,
+        486,
+        289
+      ]
+    },
+    {
+      "field_name": "region_code",
+      "text": "수원1",
+      "bbox": [
+        843,
+        130,
+        1193,
+        279
+      ]
+    },
+    {
+      "field_name": "recipient_name",
+      "text": "김성수",
+      "bbox": [
+        152,
+        311,
+        438,
+        406
+      ]
+    },
+    {
+      "field_name": "recipient_address",
+      "text": "대전광역시 유성구 전강로 207 26",
+      "bbox": [
+        52,
+        426,
+        1133,
+        536
+      ]
+    },
+    {
+      "field_name": "sender_name",
+      "text": "김상철",
+      "bbox": [
+        204,
+        563,
+        483,
+        658
+      ]
+    },
+    {
+      "field_name": "sender_address",
+      "text": "울산광역시 울주군 허산로 56",
+      "bbox": [
+        50,
+        690,
+        1237,
+        820
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "image_path": "images/00401.jpg",
+  "width": 1282,
+  "height": 858,
+  "fields": [
+    {
+      "field_name": "tracking_number",
+      "text": "89168788",
+      "bbox": [
+        56,
+        189,
+        486,
+        289
+      ]
+    },
+    {
+      "field_name": "region_code",
+      "text": "청주8",
+      "bbox": [
+        843,
+        130,
+        1193,
+        279
+      ]
+    },
+    {
+      "field_name": "recipient_name",
+      "text": "최정희",
+      "bbox": [
+        152,
+        311,
+        438,
+        406
+      ]
+    },
+    {
+      "field_name": "recipient_address",
+      "text": "서울특별시 중구 박문길 61 22",
+      "bbox": [
+        52,
+        426,
+        1133,
+        536
+      ]
+    },
+    {
+      "field_name": "sender_name",
+      "text": "김우진",
+      "bbox": [
+        204,
+        563,
+        483,
+        658
+      ]
+    },
+    {
+      "field_name": "sender_address",
+      "text": "울산광역시 동구 김산로 28",
+      "bbox": [
+        50,
+        690,
+        1237,
+        820
+      ]
+    }
+  ]
+}

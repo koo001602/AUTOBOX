@@ -10,8 +10,8 @@ const isMockMode = getMockMode()
 const notificationsEnabled = ref(true)
 const soundEnabled = ref(true)
 
-// 백엔드 설정
-const backendUrl = ref('http://127.0.0.1:8000')
+// 백엔드 설정 (Docker 환경: 현재 호스트 사용, 로컬 개발: localhost)
+const backendUrl = ref(window.location.origin || 'http://localhost')
 const backendApiPath = ref('/api/v1')
 const backendConnected = ref(false)
 const backendTesting = ref(false)
@@ -172,7 +172,7 @@ onMounted(() => {
                 type="text" 
                 v-model="backendUrl" 
                 class="setting-input"
-                placeholder="http://127.0.0.1:8000"
+                placeholder="http://localhost"
               />
             </div>
           </div>

@@ -85,6 +85,7 @@ services:
       # 데이터베이스 설정
       # ----------------------------------------------------------
       # 형식: mysql+pymysql://사용자:비밀번호@호스트:포트/DB이름?charset=utf8mb4
+      # Azure MySQL SSL은 database.py에서 자동 처리
       DATABASE_URL: mysql+pymysql://S14P11A403:1UB5b1SMZQ@ssafy-mysql-db.mysql.database.azure.com:3306/S14P11A403?charset=utf8mb4
       
       # ----------------------------------------------------------
@@ -135,8 +136,8 @@ services:
       context: ../frontend                        # 프론트엔드 소스 디렉토리
       dockerfile: Dockerfile
       args:
-        # 빌드 시 백엔드 API URL (빌드 타임에 하드코딩됨)
-        VITE_API_URL: http://localhost:8080/api/v1
+        # 빌드 시 백엔드 API URL (nginx 프록시를 통해 접근)
+        VITE_API_URL: /api/v1
     container_name: autobox-frontend
     restart: unless-stopped
     ports:

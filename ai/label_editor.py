@@ -242,20 +242,47 @@ class LabelEditor:
         tab2 = ttk.Frame(notebook, padding=10)
         notebook.add(tab2, text="이미지 효과")
         
-        # 효과 선택
-        effect_frame = ttk.LabelFrame(tab2, text="효과 종류", padding=10)
+        # 효과 선택 (다중 선택 + 비율 설정)
+        effect_frame = ttk.LabelFrame(tab2, text="효과 종류 및 생성 비율 (%)", padding=10)
         effect_frame.pack(fill=tk.X, pady=5)
         
-        self.effect_var = tk.StringVar(value='none')
+        ttk.Label(effect_frame, text="각 효과의 생성 비율을 설정하세요 (합계 100%)").pack(anchor=tk.W)
+        ttk.Separator(effect_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+        
+        # 효과별 체크박스와 비율 입력
+        self.effect_vars = {}
+        self.effect_ratio_vars = {}
         effects = [
-            ('none', '효과 없음 (기본)'),
+            ('none', '효과 없음 (원본)'),
             ('blur', '흐림 효과 (Gaussian Blur)'),
             ('mosaic', '모자이크 효과'),
             ('noise', '노이즈 추가'),
+            ('combined', '복합 효과 (blur+noise)'),
         ]
+        
         for value, text in effects:
-            ttk.Radiobutton(effect_frame, text=text, variable=self.effect_var, 
-                          value=value, command=self.preview_effect).pack(anchor=tk.W)
+            effect_row = ttk.Frame(effect_frame)
+            effect_row.pack(fill=tk.X, pady=2)
+            
+            # 체크박스
+            self.effect_vars[value] = tk.BooleanVar(value=(value == 'none'))
+            cb = ttk.Checkbutton(effect_row, text=text, variable=self.effect_vars[value],
+                                command=self.on_effect_check_change)
+            cb.pack(side=tk.LEFT)
+            
+            # 비율 입력
+            self.effect_ratio_vars[value] = tk.StringVar(value='100' if value == 'none' else '0')
+            ratio_entry = ttk.Entry(effect_row, textvariable=self.effect_ratio_vars[value], width=5)
+            ratio_entry.pack(side=tk.RIGHT)
+            ttk.Label(effect_row, text="%").pack(side=tk.RIGHT)
+        
+        # 비율 합계 표시
+        self.ratio_sum_label = ttk.Label(effect_frame, text="합계: 100%", foreground="green")
+        self.ratio_sum_label.pack(anchor=tk.E, pady=5)
+        
+        # 비율 균등 분배 버튼
+        ttk.Button(effect_frame, text="선택 항목 균등 분배", 
+                  command=self.distribute_ratio_evenly).pack(fill=tk.X, pady=2)
         
         # 효과 강도
         strength_frame = ttk.LabelFrame(tab2, text="효과 강도", padding=10)
@@ -265,11 +292,16 @@ class LabelEditor:
         ttk.Label(strength_frame, text="강도 (1-20):").pack(anchor=tk.W)
         strength_scale = ttk.Scale(strength_frame, from_=1, to=20, 
                                    variable=self.effect_strength, orient=tk.HORIZONTAL,
-                                   command=lambda v: self.preview_effect())
+                                   command=lambda v: self.update_strength_label())
         strength_scale.pack(fill=tk.X)
         
         self.strength_label = ttk.Label(strength_frame, text="현재: 5")
         self.strength_label.pack(anchor=tk.W)
+        
+        # 랜덤 강도 옵션
+        self.random_strength_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(strength_frame, text="랜덤 강도 (1~설정값)", 
+                       variable=self.random_strength_var).pack(anchor=tk.W)
         
         # 효과 적용 영역
         area_frame = ttk.LabelFrame(tab2, text="효과 적용 영역", padding=10)
@@ -281,7 +313,16 @@ class LabelEditor:
         ttk.Radiobutton(area_frame, text="마스킹 영역만", 
                        variable=self.effect_area_var, value='mask').pack(anchor=tk.W)
         
-        ttk.Button(tab2, text="효과 미리보기", command=self.preview_effect).pack(fill=tk.X, pady=10)
+        # 미리보기 효과 선택
+        preview_frame = ttk.LabelFrame(tab2, text="미리보기", padding=10)
+        preview_frame.pack(fill=tk.X, pady=5)
+        
+        self.preview_effect_var = tk.StringVar(value='none')
+        preview_combo = ttk.Combobox(preview_frame, textvariable=self.preview_effect_var, 
+                                     values=['none', 'blur', 'mosaic', 'noise', 'combined'], 
+                                     state='readonly', width=15)
+        preview_combo.pack(side=tk.LEFT, padx=5)
+        ttk.Button(preview_frame, text="효과 미리보기", command=self.preview_effect).pack(side=tk.LEFT)
         
         # === 탭 3: 이미지 생성 ===
         tab3 = ttk.Frame(notebook, padding=10)
@@ -322,13 +363,25 @@ class LabelEditor:
         option_frame = ttk.LabelFrame(tab3, text="생성 옵션", padding=10)
         option_frame.pack(fill=tk.X, pady=5)
         
-        self.apply_effect_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(option_frame, text="이미지 효과 적용", 
+        # 기존 파일 처리 옵션
+        self.clear_existing_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(option_frame, text="기존 파일 삭제 후 새로 생성", 
+                       variable=self.clear_existing_var).pack(anchor=tk.W)
+        
+        self.append_mode_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(option_frame, text="기존 파일에 이어서 생성 (번호 자동 증가)", 
+                       variable=self.append_mode_var,
+                       command=self.on_append_mode_change).pack(anchor=tk.W)
+        
+        ttk.Separator(option_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=5)
+        
+        self.apply_effect_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(option_frame, text="이미지 효과 적용 (탭2의 비율에 따라)", 
                        variable=self.apply_effect_var).pack(anchor=tk.W)
         
-        self.random_effect_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(option_frame, text="랜덤 효과 강도 (1~설정값)", 
-                       variable=self.random_effect_var).pack(anchor=tk.W)
+        # 효과 비율 요약 표시
+        self.effect_summary_label = ttk.Label(option_frame, text="", foreground="gray")
+        self.effect_summary_label.pack(anchor=tk.W, padx=20)
         
         # 생성 버튼
         generate_frame = ttk.Frame(tab3)
@@ -641,6 +694,67 @@ class LabelEditor:
         else:
             self.zoom(0.85)
     
+    def on_effect_check_change(self):
+        """효과 체크박스 변경 시 호출"""
+        self.update_ratio_sum()
+        self.update_effect_summary()
+    
+    def update_ratio_sum(self):
+        """비율 합계 업데이트"""
+        total = 0
+        for key, var in self.effect_ratio_vars.items():
+            try:
+                val = int(var.get())
+                if val > 0:
+                    total += val
+            except:
+                pass
+        
+        if total == 100:
+            self.ratio_sum_label.config(text=f"합계: {total}%", foreground="green")
+        else:
+            self.ratio_sum_label.config(text=f"합계: {total}% (100%가 되어야 합니다)", foreground="red")
+    
+    def update_effect_summary(self):
+        """효과 비율 요약 업데이트"""
+        effect_names = {
+            'none': '원본', 'blur': '흐림', 'mosaic': '모자이크', 
+            'noise': '노이즈', 'combined': '복합'
+        }
+        summary_parts = []
+        for key, var in self.effect_ratio_vars.items():
+            try:
+                val = int(var.get())
+                if val > 0:
+                    summary_parts.append(f"{effect_names.get(key, key)}:{val}%")
+            except:
+                pass
+        
+        if hasattr(self, 'effect_summary_label'):
+            self.effect_summary_label.config(text="  " + ", ".join(summary_parts) if summary_parts else "")
+    
+    def distribute_ratio_evenly(self):
+        """선택된 효과들에 비율 균등 분배"""
+        selected = [key for key, var in self.effect_vars.items() if var.get()]
+        if not selected:
+            return
+        
+        ratio_each = 100 // len(selected)
+        remainder = 100 % len(selected)
+        
+        for key in self.effect_ratio_vars:
+            if key in selected:
+                extra = 1 if selected.index(key) < remainder else 0
+                self.effect_ratio_vars[key].set(str(ratio_each + extra))
+            else:
+                self.effect_ratio_vars[key].set('0')
+        
+        self.update_ratio_sum()
+    
+    def update_strength_label(self):
+        """강도 라벨 업데이트"""
+        self.strength_label.config(text=f"현재: {self.effect_strength.get()}")
+    
     def preview_effect(self):
         """효과 미리보기"""
         if self.original_image is None:
@@ -648,7 +762,7 @@ class LabelEditor:
         
         self.strength_label.config(text=f"현재: {self.effect_strength.get()}")
         
-        effect = self.effect_var.get()
+        effect = self.preview_effect_var.get()
         strength = self.effect_strength.get()
         
         if effect == 'none':
@@ -673,6 +787,21 @@ class LabelEditor:
                     if random.random() < strength / 100:
                         r, g, b = pixels[i, j][:3]
                         noise = random.randint(-strength * 5, strength * 5)
+                        pixels[i, j] = (
+                            max(0, min(255, r + noise)),
+                            max(0, min(255, g + noise)),
+                            max(0, min(255, b + noise))
+                        )
+        elif effect == 'combined':
+            # 복합 효과: blur + noise
+            img = img.filter(ImageFilter.GaussianBlur(radius=strength // 2 + 1))
+            import random
+            pixels = img.load()
+            for i in range(img.width):
+                for j in range(img.height):
+                    if random.random() < strength / 150:
+                        r, g, b = pixels[i, j][:3]
+                        noise = random.randint(-strength * 3, strength * 3)
                         pixels[i, j] = (
                             max(0, min(255, r + noise)),
                             max(0, min(255, g + noise)),
@@ -707,6 +836,11 @@ class LabelEditor:
         if dir_path:
             self.output_var.set(dir_path)
     
+    def on_append_mode_change(self):
+        """이어서 생성 모드 변경 시 기존 파일 삭제 옵션 비활성화"""
+        if self.append_mode_var.get():
+            self.clear_existing_var.set(False)
+    
     def start_generation(self):
         """이미지 생성 시작"""
         # 설정 저장
@@ -721,6 +855,13 @@ class LabelEditor:
             return
         
         output_dir = self.output_var.get()
+        clear_existing = self.clear_existing_var.get()
+        append_mode = self.append_mode_var.get()
+        
+        # 옵션 충돌 확인
+        if clear_existing and append_mode:
+            messagebox.showwarning("경고", "두 옵션을 동시에 선택할 수 없습니다.\n'이어서 생성' 모드로 진행합니다.")
+            clear_existing = False
         
         # 버튼 비활성화
         self.generate_btn.config(state='disabled')
@@ -728,29 +869,67 @@ class LabelEditor:
         self.status_label.config(text="생성 중...")
         
         # 별도 스레드에서 실행
-        thread = threading.Thread(target=self.run_generation, args=(count, output_dir))
+        thread = threading.Thread(target=self.run_generation, args=(count, output_dir, clear_existing, append_mode))
         thread.start()
     
-    def run_generation(self, count, output_dir):
+    def run_generation(self, count, output_dir, clear_existing=True, append_mode=False):
         """이미지 생성 실행 (별도 스레드)"""
         try:
             script_dir = Path(__file__).parent
+            output_path = script_dir / output_dir
             
-            # 효과 설정 저장
+            # 기존 파일 처리
+            start_index = 1
+            if clear_existing and not append_mode:
+                # 기존 파일 삭제
+                if output_path.exists():
+                    import shutil
+                    shutil.rmtree(output_path)
+                    self.root.after(0, lambda: self.status_label.config(text="기존 파일 삭제 완료, 생성 중..."))
+            elif append_mode:
+                # 기존 파일에 이어서 생성 - 마지막 번호 찾기
+                images_dir = output_path / 'images'
+                if images_dir.exists():
+                    existing_files = list(images_dir.glob('*.jpg'))
+                    if existing_files:
+                        # 파일명에서 번호 추출 (00001.jpg -> 1)
+                        numbers = []
+                        for f in existing_files:
+                            try:
+                                num = int(f.stem)
+                                numbers.append(num)
+                            except:
+                                pass
+                        if numbers:
+                            start_index = max(numbers) + 1
+                            self.root.after(0, lambda s=start_index: self.status_label.config(
+                                text=f"기존 {s-1}개 파일 발견, {s}번부터 이어서 생성..."))
+            
+            # 효과 설정 저장 (다중 효과 + 비율)
+            effect_ratios = {}
+            for key, var in self.effect_ratio_vars.items():
+                try:
+                    ratio = int(var.get())
+                    if ratio > 0:
+                        effect_ratios[key] = ratio
+                except:
+                    pass
+            
             effect_config = {
                 'apply_effect': self.apply_effect_var.get(),
-                'effect_type': self.effect_var.get(),
+                'effect_ratios': effect_ratios,  # 효과별 비율
                 'effect_strength': self.effect_strength.get(),
-                'random_strength': self.random_effect_var.get(),
+                'random_strength': self.random_strength_var.get(),
             }
             
             effect_file = script_dir / 'effect_config.json'
             with open(effect_file, 'w') as f:
-                json.dump(effect_config, f)
+                json.dump(effect_config, f, indent=2)
             
-            # 프로세스 실행
+            # 프로세스 실행 (시작 인덱스 전달)
+            cmd = ['python', 'generate_ocr_data.py', '-n', str(count), '-o', output_dir, '--start-index', str(start_index)]
             process = subprocess.Popen(
-                ['python', 'generate_ocr_data.py', '-n', str(count), '-o', output_dir],
+                cmd,
                 cwd=script_dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -772,8 +951,9 @@ class LabelEditor:
             process.wait()
             
             if process.returncode == 0:
+                total = start_index - 1 + count if append_mode else count
                 self.root.after(0, lambda: messagebox.showinfo("완료", 
-                    f"이미지 생성 완료!\n\n생성된 파일:\n{script_dir / output_dir}"))
+                    f"이미지 생성 완료!\n\n총 이미지: {total}개\n저장 위치: {output_path}"))
             else:
                 self.root.after(0, lambda: messagebox.showerror("오류", "생성 중 오류가 발생했습니다."))
         

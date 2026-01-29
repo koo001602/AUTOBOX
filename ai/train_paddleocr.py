@@ -9,6 +9,18 @@ PaddleOCR 파인튜닝 스크립트
 
 import os
 import sys
+
+# ============================================================
+# 라이브러리 경로 설정 (가장 먼저 실행)
+# ============================================================
+# conda 환경의 라이브러리를 우선 사용하도록 설정
+CONDA_ENV_PATH = os.path.expanduser('~/.conda/envs/paddleocr/lib')
+if os.path.exists(CONDA_ENV_PATH):
+    current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
+    if CONDA_ENV_PATH not in current_ld_path:
+        # LD_LIBRARY_PATH 설정 후 재실행
+        os.environ['LD_LIBRARY_PATH'] = f"{CONDA_ENV_PATH}:{current_ld_path}"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 import json
 import shutil
 import random
@@ -295,26 +307,18 @@ Architecture:
     last_conv_stride: [1, 2]
     last_pool_type: avg
   Head:
-    name: MultiHead
-    head_list:
-      - CTCHead:
-          Neck:
-            name: svtr
-            dims: 64
-            depth: 2
-            hidden_dims: 120
-            use_guide: True
-          Head:
-            fc_decay: 0.00001
-      - SARHead:
-          enc_dim: 512
-          max_text_length: 50
+    name: CTCHead
+    Neck:
+      name: svtr
+      dims: 64
+      depth: 2
+      hidden_dims: 120
+      use_guide: True
+    Head:
+      fc_decay: 0.00001
 
 Loss:
-  name: MultiLoss
-  loss_config_list:
-    - CTCLoss:
-    - SARLoss:
+  name: CTCLoss
 
 PostProcess:
   name: CTCLabelDecode
@@ -340,16 +344,14 @@ Train:
           ext_data_num: 2
           image_shape: [48, 320, 3]
       - RecAug:
-      - MultiLabelEncode:
+      - CTCLabelEncode:
       - RecResizeImg:
           image_shape: [3, 48, 320]
       - KeepKeys:
           keep_keys:
             - image
             - label_ctc
-            - label_sar
             - length
-            - valid_ratio
   loader:
     shuffle: true
     batch_size_per_card: {batch_size}
@@ -367,16 +369,14 @@ Eval:
       - DecodeImage:
           img_mode: BGR
           channel_first: false
-      - MultiLabelEncode:
+      - CTCLabelEncode:
       - RecResizeImg:
           image_shape: [3, 48, 320]
       - KeepKeys:
           keep_keys:
             - image
             - label_ctc
-            - label_sar
             - length
-            - valid_ratio
   loader:
     shuffle: false
     drop_last: false

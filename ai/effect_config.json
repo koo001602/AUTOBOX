@@ -1,12 +1,8 @@
 {
   "apply_effect": true,
   "effect_ratios": {
-    "none": 40,
-    "blur": 20,
-    "mosaic": 15,
-    "noise": 15,
-    "combined": 10
+    "none": 100
   },
-  "effect_strength": 8,
-  "random_strength": true
+  "effect_strength": 5,
+  "random_strength": false
 }

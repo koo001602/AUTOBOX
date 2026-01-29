@@ -138,21 +138,22 @@ class ShippingLabelField:
     """운송장 필드 정의"""
     name: str                    # 필드명
     bbox: tuple                  # (x1, y1, x2, y2) 바운딩 박스
-    font_size: int               # 폰트 크기
+    font_size: int               # 폰트 크기 (auto_fit=False일 때 사용)
     font_color: tuple = (0, 0, 0)  # RGB 색상 (기본: 검정)
     font_bold: bool = False      # 굵은 폰트 여부
+    auto_fit: bool = True        # True: bbox에 맞게 자동 조절, False: font_size 값 그대로 사용
 
 
 def load_field_config():
     """설정 파일에서 필드 설정 로드"""
     # 기본 설정
     default_fields = {
-        'tracking_number': {'text': [35, 115, 440, 210], 'font_size': 75},
-        'region_code': {'text': [905, 90, 1265, 220], 'font_size': 110},
-        'recipient_name': {'text': [60, 270, 580, 365], 'font_size': 80},
-        'recipient_address': {'text': [20, 380, 1260, 490], 'font_size': 68},
-        'sender_name': {'text': [80, 520, 580, 615], 'font_size': 68},
-        'sender_address': {'text': [20, 660, 1260, 760], 'font_size': 68},
+        'tracking_number': {'text': [35, 115, 440, 210], 'font_size': 75, 'auto_fit': True},
+        'region_code': {'text': [905, 90, 1265, 220], 'font_size': 110, 'auto_fit': True},
+        'recipient_name': {'text': [60, 270, 580, 365], 'font_size': 80, 'auto_fit': True},
+        'recipient_address': {'text': [20, 380, 1260, 490], 'font_size': 68, 'auto_fit': True},
+        'sender_name': {'text': [80, 520, 580, 615], 'font_size': 68, 'auto_fit': True},
+        'sender_address': {'text': [20, 660, 1260, 760], 'font_size': 68, 'auto_fit': True},
     }
     
     # 설정 파일이 있으면 로드
@@ -164,6 +165,7 @@ def load_field_config():
                     if key in config:
                         default_fields[key]['text'] = config[key].get('text', default_fields[key]['text'])
                         default_fields[key]['font_size'] = config[key].get('font_size', default_fields[key]['font_size'])
+                        default_fields[key]['auto_fit'] = config[key].get('auto_fit', default_fields[key]['auto_fit'])
             print(f"설정 파일 로드됨: {CONFIG_FILE}")
         except Exception as e:
             print(f"설정 파일 로드 실패, 기본값 사용: {e}")
@@ -176,7 +178,8 @@ def load_field_config():
             bbox=tuple(data['text']),
             font_size=data['font_size'],
             font_color=(30, 30, 30),
-            font_bold=True
+            font_bold=True,
+            auto_fit=data['auto_fit']
         )
     
     return fields
@@ -501,6 +504,55 @@ class ShippingLabelGenerator:
                 pass
         return ImageFont.load_default()
     
+    def _calculate_auto_fit_font_size(self, text: str, bbox: tuple, bold: bool = False, 
+                                       min_size: int = 10, max_size: int = 200, 
+                                       padding: int = 4) -> int:
+        """
+        텍스트가 bbox 안에 들어가도록 적절한 폰트 크기 계산 (이진 탐색)
+        
+        Args:
+            text: 렌더링할 텍스트
+            bbox: (x1, y1, x2, y2) 바운딩 박스
+            bold: 굵은 폰트 여부
+            min_size: 최소 폰트 크기
+            max_size: 최대 폰트 크기
+            padding: 여백 (픽셀)
+            
+        Returns:
+            적절한 폰트 크기
+        """
+        x1, y1, x2, y2 = bbox
+        max_width = (x2 - x1) - padding * 2
+        max_height = (y2 - y1) - padding * 2
+        
+        if max_width <= 0 or max_height <= 0:
+            return min_size
+        
+        # 이진 탐색으로 최적 폰트 크기 찾기
+        low, high = min_size, max_size
+        best_size = min_size
+        
+        while low <= high:
+            mid = (low + high) // 2
+            font = self._get_font(mid, bold)
+            
+            # 텍스트 크기 측정
+            try:
+                bbox_text = font.getbbox(text)
+                text_width = bbox_text[2] - bbox_text[0]
+                text_height = bbox_text[3] - bbox_text[1]
+            except:
+                # 구버전 PIL 호환
+                text_width, text_height = font.getsize(text)
+            
+            if text_width <= max_width and text_height <= max_height:
+                best_size = mid
+                low = mid + 1
+            else:
+                high = mid - 1
+        
+        return best_size
+    
     def _get_background_color(self, image: Image.Image, region: tuple, field_name: str) -> tuple:
         """영역의 배경색 반환 (운송장 배경색)"""
         # 운송장 배경색은 밝은 회색/베이지 계열
@@ -542,8 +594,18 @@ class ShippingLabelGenerator:
                 bg_color = self._get_background_color(image, mask_region, field_name)
                 draw.rectangle(mask_region, fill=bg_color)
             
+            # 폰트 크기 결정
+            if field_config.auto_fit:
+                # bbox에 맞게 자동 조절
+                font_size = self._calculate_auto_fit_font_size(
+                    text, field_config.bbox, field_config.font_bold
+                )
+            else:
+                # 설정된 font_size 값 그대로 사용
+                font_size = field_config.font_size
+            
             # 텍스트 렌더링
-            font = self._get_font(field_config.font_size, field_config.font_bold)
+            font = self._get_font(font_size, field_config.font_bold)
             x1, y1, x2, y2 = field_config.bbox
             
             # 텍스트 위치 계산 (좌상단 기준)

@@ -364,8 +364,8 @@ async def send_box_count_command(request: BoxCountCommandRequest):
     """
     CMD-001: 박스 개수 명령 전송.
     
-    프론트엔드에서 입력받은 박스 개수를 MQTT를 통해 라즈베리파이로 전송합니다.
-    라즈베리파이는 'autobox/command/box-count' 토픽을 구독하여 명령을 수신합니다.
+    프론트엔드에서 입력받은 박스 개수를 MQTT를 통해 라즈베리파이로 전송.
+    라즈베리파이는 'autobox/command/box-count' 토픽을 구독하여 명령을 수신.
     """
     command_id = f"CMD-{uuid.uuid4().hex[:8].upper()}"
     now = datetime.utcnow()

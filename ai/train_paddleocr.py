@@ -593,7 +593,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 사용 예시:
-  # 전처리 + 학습 전체 실행
+  # 전처리 + 학습 전체 실행 (GPU 7번 사용)
   python train_paddleocr.py
 
   # 전처리만 실행
@@ -601,9 +601,6 @@ def main():
 
   # 학습만 실행 (전처리 완료 후)
   python train_paddleocr.py --train-only
-
-  # GPU 지정
-  python train_paddleocr.py --gpu 0
 
   # 학습 설정 변경
   python train_paddleocr.py --batch-size 64 --epochs 50 --lr 0.001
@@ -629,8 +626,8 @@ def main():
                         help='Train/Val 분할 비율 (기본값: 0.9)')
     
     # GPU 설정
-    parser.add_argument('--gpu', type=int, default=0,
-                        help='사용할 GPU ID (기본값: 0)')
+    parser.add_argument('--gpu', type=int, default=7,
+                        help='사용할 GPU ID (기본값: 7)')
     parser.add_argument('--gpu-memory', type=float, default=0.95,
                         help='GPU 메모리 사용 비율 (0.0~1.0, 기본값: 0.95)')
     parser.add_argument('--cpu', action='store_true',

@@ -37,7 +37,7 @@ python train_paddleocr.py
 
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
-| `--gpu` | 사용할 GPU ID | 0 |
+| `--gpu` | 사용할 GPU ID | 7 |
 | `--cpu` | CPU 모드로 학습 | False |
 
 ### 실행 모드
@@ -74,11 +74,11 @@ python train_paddleocr.py --train-only
 ### 4. GPU 지정
 
 ```bash
-# GPU 0번 사용 (기본값)
-python train_paddleocr.py --gpu 0
+# GPU 7번 사용 (기본값)
+python train_paddleocr.py
 
-# GPU 7번 사용
-python train_paddleocr.py --gpu 7
+# 다른 GPU 사용 시
+python train_paddleocr.py --gpu 0
 ```
 
 ### 5. CPU 모드

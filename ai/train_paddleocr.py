@@ -191,49 +191,46 @@ def convert_to_paddle_format(generated_dir: Path, output_dir: Path, train_ratio:
 # 2. 한글 문자 사전 생성
 # ============================================================
 
-def create_korean_dict(data_dir: Path, output_file: Path):
+def create_korean_dict(data_dir: Path, output_file: Path, paddleocr_dir: Path = None):
     """
-    학습 데이터에서 사용된 모든 문자를 추출하여 사전 생성
+    PaddleOCR 공식 한국어 사전을 복사
+    (사전 학습 모델과 호환되는 공식 사전 사용)
     """
     print("\n" + "=" * 60)
-    print("2단계: 한글 문자 사전 생성")
+    print("2단계: 한글 문자 사전 설정")
     print("=" * 60)
     
-    chars = set()
+    # 공식 한국어 사전 경로
+    if paddleocr_dir is None:
+        paddleocr_dir = Path(__file__).parent / 'PaddleOCR'
     
-    # Train 라벨에서 문자 추출
-    label_file = data_dir / 'train' / 'label.txt'
-    with open(label_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            parts = line.strip().split('\t')
-            if len(parts) >= 2:
-                text = parts[1]
-                chars.update(text)
+    official_dict = paddleocr_dir / 'ppocr' / 'utils' / 'dict' / 'korean_dict.txt'
     
-    # 기본 한글 완성형 추가 (가-힣)
-    for code in range(0xAC00, 0xD7A4):
-        chars.add(chr(code))
-
-    # 한글 자모 추가 (ㄱ-ㅎ, ㅏ-ㅣ)
-    for code in range(0x3131, 0x3164):  # 한글 호환 자모 (초성 + 중성)
-        chars.add(chr(code))
-
-    # 숫자, 영문, 특수문자 추가
-    chars.update('0123456789')
-    chars.update('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
-    chars.update(' .-_,()[]{}:;/\\@#$%&*+=<>?!"\'~`|^')
+    if official_dict.exists():
+        shutil.copy(official_dict, output_file)
+        with open(output_file, 'r', encoding='utf-8') as f:
+            char_count = len(f.readlines())
+        print(f"공식 한국어 사전 복사 완료: {char_count}개 문자")
+        print(f"저장 위치: {output_file}")
+    else:
+        print(f"경고: 공식 사전 파일을 찾을 수 없습니다: {official_dict}")
+        print("기본 사전을 생성합니다...")
+        
+        # 기본 한글 사전 생성 (fallback)
+        chars = set()
+        for code in range(0xAC00, 0xD7A4):
+            chars.add(chr(code))
+        chars.update('0123456789')
+        chars.update('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        chars.update(' .-_,()[]{}:;/\\@#$%&*+=<>?!"\'~`|^')
+        
+        sorted_chars = sorted(chars)
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for char in sorted_chars:
+                f.write(char + '\n')
+        print(f"기본 사전 생성 완료: {len(sorted_chars)}개 문자")
     
-    # 정렬 후 저장
-    sorted_chars = sorted(chars)
-    
-    with open(output_file, 'w', encoding='utf-8') as f:
-        for char in sorted_chars:
-            f.write(char + '\n')
-    
-    print(f"문자 사전 생성 완료: {len(sorted_chars)}개 문자")
-    print(f"저장 위치: {output_file}")
-    
-    return sorted_chars
+    return output_file
 
 
 # ============================================================
@@ -241,27 +238,18 @@ def create_korean_dict(data_dir: Path, output_file: Path):
 # ============================================================
 
 def create_config_file(data_dir: Path, config_file: Path, pretrain_model_path: str,
-                       batch_size: int = 512, epoch_num: int = 100, learning_rate: float = 0.001,
-                       num_workers: int = 8, use_amp: bool = True):
+                       batch_size: int = 64, epoch_num: int = 100, learning_rate: float = 0.001,
+                       num_workers: int = 4, use_amp: bool = True):
     """
-    PaddleOCR 학습 설정 파일 생성 (V100 32GB 최적화)
+    PaddleOCR PP-OCRv3 학습 설정 파일 생성 (MultiHead 아키텍처)
     """
     print("\n" + "=" * 60)
-    print("3단계: 설정 파일 생성 (V100 32GB 최적화)")
+    print("3단계: 설정 파일 생성 (PP-OCRv3 MultiHead)")
     print("=" * 60)
 
     # 경로를 forward slash로 변환 (YAML 호환)
     def to_posix(path):
         return str(path).replace('\\', '/')
-
-    # AMP 설정 (Mixed Precision - FP16)
-    amp_config = ""
-    if use_amp:
-        amp_config = """
-  # Mixed Precision Training (FP16)
-  use_amp: true
-  amp_level: O1
-  scale_loss: 1024.0"""
 
     config_content = f'''Global:
   debug: false
@@ -271,19 +259,19 @@ def create_config_file(data_dir: Path, config_file: Path, pretrain_model_path: s
   print_batch_step: 50
   save_model_dir: ./output/rec_korean_finetune
   save_epoch_step: 5
-  eval_batch_step: [0, 1000]
+  eval_batch_step: [0, 500]
   cal_metric_during_train: true
-  pretrained_model: {pretrain_model_path}
+  pretrained_model:
   checkpoints:
   save_inference_dir:
   use_visualdl: false
   infer_img:
   character_dict_path: {to_posix(data_dir / 'korean_dict.txt')}
-  max_text_length: 50
+  max_text_length: 25
   infer_mode: false
   use_space_char: true
   distributed: false
-  save_res_path: ./output/rec/predicts.txt{amp_config}
+  save_res_path: ./output/rec/predicts.txt
 
 Optimizer:
   name: Adam
@@ -295,7 +283,7 @@ Optimizer:
     warmup_epoch: 2
   regularizer:
     name: L2
-    factor: 1.0e-05
+    factor: 3.0e-05
 
 Architecture:
   model_type: rec
@@ -306,6 +294,7 @@ Architecture:
     scale: 0.5
     last_conv_stride: [1, 2]
     last_pool_type: avg
+    last_pool_kernel_size: [2, 2]
   Head:
     name: CTCHead
     Neck:
@@ -332,17 +321,12 @@ Train:
   dataset:
     name: SimpleDataSet
     data_dir: {to_posix(data_dir / 'train')}
-    ext_op_transform_idx: 1
     label_file_list:
       - {to_posix(data_dir / 'train' / 'label.txt')}
     transforms:
       - DecodeImage:
           img_mode: BGR
           channel_first: false
-      - RecConAug:
-          prob: 0.5
-          ext_data_num: 2
-          image_shape: [48, 320, 3]
       - RecAug:
       - CTCLabelEncode:
       - RecResizeImg:
@@ -350,7 +334,7 @@ Train:
       - KeepKeys:
           keep_keys:
             - image
-            - label_ctc
+            - label
             - length
   loader:
     shuffle: true
@@ -375,7 +359,7 @@ Eval:
       - KeepKeys:
           keep_keys:
             - image
-            - label_ctc
+            - label
             - length
   loader:
     shuffle: false
@@ -393,7 +377,7 @@ Eval:
     print(f"  Epoch: {epoch_num}")
     print(f"  Learning Rate: {learning_rate}")
     print(f"  Num Workers: {num_workers}")
-    print(f"  Mixed Precision (AMP): {'활성화' if use_amp else '비활성화'}")
+    print(f"  Architecture: PP-OCRv3 MultiHead (CTCHead + SARHead)")
 
 
 # ============================================================
@@ -640,8 +624,8 @@ def main():
                         help='최종 모델 저장 디렉토리')
     
     # 학습 설정 (V100 32GB 최적화 기본값)
-    parser.add_argument('--batch-size', type=int, default=256,
-                        help='배치 크기 (기본값: 256)')
+    parser.add_argument('--batch-size', type=int, default=64,
+                        help='배치 크기 (기본값: 64)')
     parser.add_argument('--epochs', type=int, default=50,
                         help='에폭 수 (기본값: 50)')
     parser.add_argument('--lr', type=float, default=0.001,
@@ -695,17 +679,17 @@ def main():
     if not args.cpu and not args.preprocess_only:
         verify_gpu()
     
-    # 1. 전처리
+    # 1. PaddleOCR 설정 (사전 파일 복사를 위해 먼저 실행)
+    paddleocr_dir = setup_paddleocr(base_dir)
+    
+    # 2. 전처리
     if not args.train_only and not args.eval_only and not args.export_only:
         convert_to_paddle_format(generated_dir, data_dir, args.train_ratio)
-        create_korean_dict(data_dir, data_dir / 'korean_dict.txt')
+        create_korean_dict(data_dir, data_dir / 'korean_dict.txt', paddleocr_dir)
     
     if args.preprocess_only:
         print("\n전처리 완료!")
         return
-    
-    # 2. PaddleOCR 설정
-    paddleocr_dir = setup_paddleocr(base_dir)
     
     # 3. 사전 학습 모델 다운로드
     pretrain_dir = paddleocr_dir / 'pretrain_models'

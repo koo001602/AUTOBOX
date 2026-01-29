@@ -9,12 +9,15 @@ OCR 학습 데이터 생성기
 import json
 import random
 import argparse
+import multiprocessing as mp
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional
+from functools import partial
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from faker import Faker
+from tqdm import tqdm
 
 
 # 한국어 Faker 인스턴스
@@ -211,9 +214,36 @@ MASK_REGIONS = load_mask_config()
 
 # 한국 주요 도시 목록 (지역 코드용)
 KOREAN_CITIES = [
+    # 광역시/특별시
     '서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종',
-    '수원', '성남', '고양', '용인', '창원', '청주', '전주', '천안',
-    '안산', '안양', '남양주', '화성', '평택', '의정부', '시흥', '김해'
+    # 경기도
+    '수원', '성남', '고양', '용인', '안산', '안양', '남양주', '화성', '평택', '의정부', 
+    '시흥', '파주', '김포', '광명', '광주', '군포', '오산', '이천', '안성', '양주',
+    '포천', '여주', '동두천', '과천', '구리', '하남', '양평', '가평', '연천',
+    # 강원도
+    '춘천', '원주', '강릉', '동해', '태백', '속초', '삼척', '홍천', '횡성', '영월',
+    '평창', '정선', '철원', '화천', '양구', '인제', '고성', '양양',
+    # 충청북도
+    '청주', '충주', '제천', '보은', '옥천', '영동', '증평', '진천', '괴산', '음성', '단양',
+    # 충청남도
+    '천안', '공주', '보령', '아산', '서산', '논산', '계룡', '당진', '금산', '부여',
+    '서천', '청양', '홍성', '예산', '태안',
+    # 전라북도
+    '전주', '군산', '익산', '정읍', '남원', '김제', '완주', '진안', '무주', '장수',
+    '임실', '순창', '고창', '부안',
+    # 전라남도
+    '목포', '여수', '순천', '나주', '광양', '담양', '곡성', '구례', '고흥', '보성',
+    '화순', '장흥', '강진', '해남', '영암', '무안', '함평', '영광', '장성', '완도',
+    '진도', '신안',
+    # 경상북도
+    '포항', '경주', '김천', '안동', '구미', '영주', '영천', '상주', '문경', '경산',
+    '군위', '의성', '청송', '영양', '영덕', '청도', '고령', '성주', '칠곡', '예천',
+    '봉화', '울진', '울릉',
+    # 경상남도
+    '창원', '진주', '통영', '사천', '김해', '밀양', '거제', '양산', '의령', '함안',
+    '창녕', '고성', '남해', '하동', '산청', '함양', '거창', '합천',
+    # 제주
+    '제주', '서귀포'
 ]
 
 # 한국 도/시 목록
@@ -223,22 +253,55 @@ KOREAN_PROVINCES = [
     '충청북도', '충청남도', '전라북도', '전라남도', '경상북도', '경상남도', '제주특별자치도'
 ]
 
-# 구/군 목록 (샘플)
+# 구/군 목록 (전국)
 KOREAN_DISTRICTS = {
     '서울특별시': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-    '부산광역시': ['강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
-    '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+    '부산광역시': ['강서구', '금정구', '기장군', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구'],
+    '대구광역시': ['남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구', '군위군'],
     '인천광역시': ['강화군', '계양구', '남동구', '동구', '미추홀구', '부평구', '서구', '연수구', '옹진군', '중구'],
     '광주광역시': ['광산구', '남구', '동구', '북구', '서구'],
     '대전광역시': ['대덕구', '동구', '서구', '유성구', '중구'],
     '울산광역시': ['남구', '동구', '북구', '울주군', '중구'],
+    '세종특별자치시': ['세종시'],
+    '경기도': ['수원시 장안구', '수원시 권선구', '수원시 팔달구', '수원시 영통구', '성남시 수정구', '성남시 중원구', '성남시 분당구', '의정부시', '안양시 만안구', '안양시 동안구', '부천시', '광명시', '평택시', '동두천시', '안산시 상록구', '안산시 단원구', '고양시 덕양구', '고양시 일산동구', '고양시 일산서구', '과천시', '구리시', '남양주시', '오산시', '시흥시', '군포시', '의왕시', '하남시', '용인시 처인구', '용인시 기흥구', '용인시 수지구', '파주시', '이천시', '안성시', '김포시', '화성시', '광주시', '양주시', '포천시', '여주시', '연천군', '가평군', '양평군'],
+    '강원도': ['춘천시', '원주시', '강릉시', '동해시', '태백시', '속초시', '삼척시', '홍천군', '횡성군', '영월군', '평창군', '정선군', '철원군', '화천군', '양구군', '인제군', '고성군', '양양군'],
+    '충청북도': ['청주시 상당구', '청주시 서원구', '청주시 흥덕구', '청주시 청원구', '충주시', '제천시', '보은군', '옥천군', '영동군', '증평군', '진천군', '괴산군', '음성군', '단양군'],
+    '충청남도': ['천안시 동남구', '천안시 서북구', '공주시', '보령시', '아산시', '서산시', '논산시', '계룡시', '당진시', '금산군', '부여군', '서천군', '청양군', '홍성군', '예산군', '태안군'],
+    '전라북도': ['전주시 완산구', '전주시 덕진구', '군산시', '익산시', '정읍시', '남원시', '김제시', '완주군', '진안군', '무주군', '장수군', '임실군', '순창군', '고창군', '부안군'],
+    '전라남도': ['목포시', '여수시', '순천시', '나주시', '광양시', '담양군', '곡성군', '구례군', '고흥군', '보성군', '화순군', '장흥군', '강진군', '해남군', '영암군', '무안군', '함평군', '영광군', '장성군', '완도군', '진도군', '신안군'],
+    '경상북도': ['포항시 남구', '포항시 북구', '경주시', '김천시', '안동시', '구미시', '영주시', '영천시', '상주시', '문경시', '경산시', '의성군', '청송군', '영양군', '영덕군', '청도군', '고령군', '성주군', '칠곡군', '예천군', '봉화군', '울진군', '울릉군'],
+    '경상남도': ['창원시 의창구', '창원시 성산구', '창원시 마산합포구', '창원시 마산회원구', '창원시 진해구', '진주시', '통영시', '사천시', '김해시', '밀양시', '거제시', '양산시', '의령군', '함안군', '창녕군', '고성군', '남해군', '하동군', '산청군', '함양군', '거창군', '합천군'],
+    '제주특별자치도': ['제주시', '서귀포시'],
 }
 
-# 도로명 샘플
-ROAD_NAMES = [
-    '대로', '로', '길', 'street', '대학로', '중앙로', '역전로', '시청로',
-    '문화로', '산업로', '번영로', '평화로', '자유로', '통일로', '세종로'
+# 도로명 접두사 샘플 (더 다양한 조합을 위해)
+ROAD_PREFIXES = [
+    # 방향/위치
+    '중앙', '동', '서', '남', '북', '상', '하', '신', '구', '내', '외',
+    # 자연
+    '산', '강', '천', '해', '호수', '숲', '들', '바다', '언덕', '골짜기', '계곡',
+    '솔', '소나무', '은행나무', '버드나무', '단풍', '벚꽃', '매화', '장미', '백합',
+    '청산', '녹수', '백운', '청계', '명수', '석계', '한강', '낙동', '금강', '영산',
+    # 동물
+    '학', '봉황', '용', '호랑이', '사슴', '두루미', '백로', '까치', '비둘기',
+    # 역사/문화
+    '문화', '예술', '학문', '교육', '역사', '전통', '민속', '유산', '고궁', '서원',
+    '충효', '인의', '예지', '신의', '효도', '우정', '사랑', '희망', '평화', '통일',
+    # 발전/번영
+    '번영', '발전', '진흥', '융성', '창조', '혁신', '미래', '첨단', '산업', '기술',
+    '과학', '정보', '디지털', '스마트', '그린', '에코',
+    # 생활
+    '행복', '건강', '장수', '복지', '안전', '편의', '생활', '주민', '시민', '마을',
+    '새마을', '햇살', '바람', '하늘', '구름', '별', '달', '태양', '무지개', '노을',
+    # 시설
+    '역전', '시청', '도청', '군청', '구청', '청사', '공원', '광장', '체육', '운동',
+    '대학', '학교', '병원', '시장', '백화점', '터미널', '공항', '항만', '부두',
+    # 지역 특성
+    '온천', '관광', '휴양', '리조트', '해변', '포구', '나루', '다리', '고개', '재',
 ]
+
+# 도로명 접미사
+ROAD_SUFFIXES = ['로', '길', '대로']
 
 
 def generate_korean_name() -> str:
@@ -259,28 +322,40 @@ def generate_region_code() -> str:
 
 
 def generate_korean_address() -> str:
-    """한국 주소 생성"""
+    """
+    한국 주소 생성 (간단한 형태)
+    예: 광주광역시 남구 보문로 76
+    """
     # 시/도 선택
     province = random.choice(list(KOREAN_DISTRICTS.keys()))
     
     # 구/군 선택
     district = random.choice(KOREAN_DISTRICTS[province])
     
-    # 도로명 생성
-    road_prefix = fake.last_name() + random.choice(['', '문', '산', '천', '강'])
-    road_suffix = random.choice(['로', '길', '대로'])
-    road_name = road_prefix + road_suffix
+    # 도로명 생성 (간단하게)
+    road_style = random.choice(['simple', 'prefix', 'name'])
+    
+    if road_style == 'simple':
+        # 간단한 도로명 (예: 보문로, 중앙로, 역전로)
+        simple_prefixes = [
+            '보문', '중앙', '역전', '시청', '문화', '산업', '번영', '평화', '자유', '통일',
+            '세종', '광복', '독립', '민주', '정의', '희망', '미래', '새벽', '햇살', '바람',
+            '청산', '녹수', '백운', '명수', '석계', '한강', '낙동', '금강', '영산', '섬진',
+            '동문', '서문', '남문', '북문', '성내', '성외', '읍내', '장터', '시장', '공원',
+        ]
+        road_name = random.choice(simple_prefixes) + random.choice(ROAD_SUFFIXES)
+    elif road_style == 'prefix':
+        # 접두사 + 접미사 (예: 신문로, 구시장길)
+        road_name = random.choice(ROAD_PREFIXES[:30]) + random.choice(ROAD_SUFFIXES)
+    else:
+        # 성씨 + 접미사 (예: 김로, 이길)
+        extras = ['', '문', '산', '천', '정', '덕', '원']
+        road_name = fake.last_name() + random.choice(extras) + random.choice(ROAD_SUFFIXES)
     
     # 번지
     number = random.randint(1, 500)
     
-    # 상세주소 (선택적)
-    detail = ''
-    if random.random() > 0.5:
-        building_num = random.randint(1, 30)
-        detail = f" {building_num}"
-    
-    return f"{province} {district} {road_name} {number}{detail}"
+    return f"{province} {district} {road_name} {number}"
 
 
 def generate_random_shipping_data() -> dict:
@@ -293,6 +368,42 @@ def generate_random_shipping_data() -> dict:
         'sender_name': generate_korean_name(),
         'sender_address': generate_korean_address(),
     }
+
+
+def generate_single_worker(args):
+    """
+    병렬 처리용 워커 함수 (모듈 레벨에서 정의해야 pickle 가능)
+    """
+    idx, output_dir, template_path, font_path, effect_config = args
+
+    # 각 워커에서 generator 인스턴스 생성
+    generator = ShippingLabelGenerator(template_path=template_path, font_path=font_path)
+
+    output_path = Path(output_dir)
+
+    # 랜덤 데이터 생성
+    data = generate_random_shipping_data()
+
+    # 이미지 생성
+    image = generator.render_image(data)
+
+    # 효과 적용
+    applied_effect = 'none'
+    if effect_config:
+        image, applied_effect = apply_image_effect(image, effect_config)
+
+    # 파일명 생성
+    image_filename = f"{idx:05d}.jpg"
+    image_path = output_path / 'images' / image_filename
+
+    # 이미지 저장
+    image.save(image_path, 'JPEG', quality=95)
+
+    # 라벨 생성
+    relative_image_path = f"images/{image_filename}"
+    label = generator.generate_label_json(data, relative_image_path)
+
+    return label, applied_effect
 
 
 class ShippingLabelGenerator:
@@ -311,23 +422,66 @@ class ShippingLabelGenerator:
         # 폰트 설정
         self.font_path = font_path
         if font_path is None:
-            # Windows 기본 폰트 경로들
+            # 스크립트 위치 기준 fonts 폴더
+            script_dir = Path(__file__).parent
+            local_fonts_dir = script_dir / 'fonts'
+            
+            # Windows / Linux / macOS 폰트 경로들
             possible_fonts = [
+                # 프로젝트 로컬 폰트 (우선)
+                str(local_fonts_dir / 'NanumGothic.ttf'),
+                str(local_fonts_dir / 'NanumGothicBold.ttf'),
+                str(local_fonts_dir / 'malgun.ttf'),
+                # Windows
                 'C:/Windows/Fonts/malgun.ttf',      # 맑은 고딕
-                'C:/Windows/Fonts/malgunbd.ttf',   # 맑은 고딕 Bold
+                'C:/Windows/Fonts/malgunbd.ttf',    # 맑은 고딕 Bold
                 'C:/Windows/Fonts/NanumGothic.ttf', # 나눔고딕
                 'C:/Windows/Fonts/gulim.ttc',       # 굴림
-                '/usr/share/fonts/truetype/nanum/NanumGothic.ttf',  # Linux
-                '/System/Library/Fonts/AppleGothic.ttf',  # macOS
+                # Linux - 나눔폰트
+                '/usr/share/fonts/truetype/nanum/NanumGothic.ttf',
+                '/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf',
+                '/usr/share/fonts/nanum/NanumGothic.ttf',
+                '/usr/share/fonts/nanum/NanumGothicBold.ttf',
+                # Linux - 나눔폰트 (다른 경로)
+                '/usr/share/fonts/truetype/NanumGothic.ttf',
+                '/usr/share/fonts/NanumGothic.ttf',
+                # Linux - 본고딕 (Noto Sans CJK)
+                '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+                # Linux - 은폰트
+                '/usr/share/fonts/truetype/unfonts-core/UnDotum.ttf',
+                '/usr/share/fonts/truetype/unfonts/UnDotum.ttf',
+                # Linux - D2Coding
+                '/usr/share/fonts/truetype/d2coding/D2Coding.ttf',
+                # macOS
+                '/System/Library/Fonts/AppleGothic.ttf',
+                '/Library/Fonts/NanumGothic.ttf',
             ]
             for font in possible_fonts:
                 if Path(font).exists():
                     self.font_path = font
+                    print(f"폰트 발견: {font}")
                     break
+            
+            if self.font_path is None:
+                print("=" * 60)
+                print("경고: 한글 폰트를 찾을 수 없습니다!")
+                print("=" * 60)
+                print("\n다음 명령으로 폰트를 다운로드하세요:\n")
+                print(f"  mkdir -p {local_fonts_dir}")
+                print(f"  cd {local_fonts_dir}")
+                print("  wget https://github.com/naver/nanumfont/releases/download/VER2.5/NanumGothic.ttf")
+                print("  wget https://github.com/naver/nanumfont/releases/download/VER2.5/NanumGothicBold.ttf")
+                print("=" * 60)
         
         self.font_path_bold = None
-        if self.font_path and 'malgun.ttf' in self.font_path:
-            self.font_path_bold = self.font_path.replace('malgun.ttf', 'malgunbd.ttf')
+        if self.font_path:
+            if 'malgun.ttf' in self.font_path:
+                self.font_path_bold = self.font_path.replace('malgun.ttf', 'malgunbd.ttf')
+            elif 'NanumGothic.ttf' in self.font_path:
+                self.font_path_bold = self.font_path.replace('NanumGothic.ttf', 'NanumGothicBold.ttf')
         
         # 마스킹할 영역 정의 (텍스트를 덮어쓸 영역)
         self.mask_regions = self._define_mask_regions()
@@ -471,23 +625,24 @@ class ShippingLabelGenerator:
         
         return image_path, label, applied_effect
     
-    def generate_batch(self, count: int, output_dir: str = 'generated', start_index: int = 1):
+    def generate_batch(self, count: int, output_dir: str = 'generated', start_index: int = 1, num_workers: int = None):
         """
-        배치로 이미지와 라벨 생성
-        
+        배치로 이미지와 라벨 생성 (병렬 처리)
+
         Args:
             count: 생성할 이미지 수
             output_dir: 출력 디렉토리
             start_index: 시작 인덱스 (기본값: 1)
+            num_workers: 병렬 처리 워커 수 (기본값: CPU 코어 수)
         """
         output_path = Path(output_dir)
         images_dir = output_path / 'images'
         labels_dir = output_path / 'labels'
-        
+
         # 디렉토리 생성
         images_dir.mkdir(parents=True, exist_ok=True)
         labels_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 효과 설정 로드
         effect_config = load_effect_config()
         if effect_config.get('apply_effect'):
@@ -495,28 +650,44 @@ class ShippingLabelGenerator:
             print(f"효과 적용: 비율 설정 {effect_ratios} (강도: {effect_config.get('effect_strength')})")
             if effect_config.get('random_strength'):
                 print(f"  랜덤 강도 활성화: 1~{effect_config.get('effect_strength')}")
-        
-        all_labels = []
-        effect_stats = {}  # 효과별 통계
-        
+
+        # 워커 수 설정
+        if num_workers is None:
+            num_workers = mp.cpu_count()
+        print(f"병렬 처리: {num_workers}개 워커 사용")
+
         if start_index > 1:
             print(f"시작 인덱스: {start_index} (이어서 생성)")
         print(f"생성 시작: {count}개의 이미지...")
-        
-        for i in range(count):
-            current_index = start_index + i
-            image_path, label, applied_effect = self.generate_single(output_path, current_index, effect_config)
+
+        # 병렬 처리를 위한 인덱스 리스트
+        indices = [start_index + i for i in range(count)]
+
+        # 워커 함수에 전달할 인자 준비
+        worker_args = [
+            (idx, str(output_path), str(self.template_path), self.font_path, effect_config)
+            for idx in indices
+        ]
+
+        # 병렬 처리 실행
+        all_labels = []
+        effect_stats = {}
+
+        with mp.Pool(processes=num_workers) as pool:
+            results = list(tqdm(
+                pool.imap(generate_single_worker, worker_args),
+                total=count,
+                desc="이미지 생성"
+            ))
+
+        # 결과 처리
+        for label, applied_effect in results:
             all_labels.append(label)
-            
-            # 효과 통계 업데이트
             effect_stats[applied_effect] = effect_stats.get(applied_effect, 0) + 1
-            
-            if (i + 1) % 10 == 0 or i == count - 1:
-                print(f"진행률: {i + 1}/{count} ({(i + 1) / count * 100:.1f}%)")
-        
+
         # 전체 라벨을 하나의 JSON 파일로 저장
         labels_file = labels_dir / 'labels.json'
-        
+
         # 이어서 생성하는 경우 기존 라벨 로드
         existing_labels = []
         if start_index > 1 and labels_file.exists():
@@ -526,31 +697,32 @@ class ShippingLabelGenerator:
                 print(f"기존 라벨 {len(existing_labels)}개 로드됨")
             except:
                 pass
-        
+
         # 기존 라벨 + 새 라벨 합치기
         combined_labels = existing_labels + all_labels
-        
+
         with open(labels_file, 'w', encoding='utf-8') as f:
             json.dump(combined_labels, f, ensure_ascii=False, indent=2)
-        
+
         # 개별 라벨 파일도 저장 (시작 인덱스 적용)
-        for i, label in enumerate(all_labels):
+        print("라벨 파일 저장 중...")
+        for i, label in enumerate(tqdm(all_labels, desc="라벨 저장")):
             current_index = start_index + i
             label_file = labels_dir / f"{current_index:05d}.json"
             with open(label_file, 'w', encoding='utf-8') as f:
                 json.dump(label, f, ensure_ascii=False, indent=2)
-        
+
         print(f"\n완료!")
         print(f"이미지 저장 위치: {images_dir}")
         print(f"라벨 저장 위치: {labels_dir}")
         print(f"통합 라벨 파일: {labels_file}")
         print(f"총 라벨 수: {len(combined_labels)}개")
-        
+
         # 효과별 통계 출력
         if effect_stats:
             print(f"\n=== 효과별 생성 통계 ===")
             effect_names = {
-                'none': '원본', 'blur': '흐림', 'mosaic': '모자이크', 
+                'none': '원본', 'blur': '흐림', 'mosaic': '모자이크',
                 'noise': '노이즈', 'combined': '복합'
             }
             for effect, cnt in sorted(effect_stats.items(), key=lambda x: -x[1]):
@@ -614,7 +786,13 @@ def main():
         action='store_true',
         help='기존 파일 삭제 후 새로 생성'
     )
-    
+    parser.add_argument(
+        '-w', '--workers',
+        type=int,
+        default=None,
+        help='병렬 처리 워커 수 (기본값: CPU 코어 수)'
+    )
+
     args = parser.parse_args()
     
     # 템플릿 경로 결정
@@ -668,7 +846,8 @@ def main():
     generator.generate_batch(
         count=args.count,
         output_dir=str(output_dir),
-        start_index=args.start_index
+        start_index=args.start_index,
+        num_workers=args.workers
     )
 
 

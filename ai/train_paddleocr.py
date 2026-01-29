@@ -26,8 +26,8 @@ from PIL import Image
 
 def setup_gpu_environment(gpu_id: int = 0, memory_fraction: float = 0.95):
     """
-    GPU 환경 변수 설정 (스크립트 시작 시 호출)
-    
+    GPU 환경 변수 설정 (스크립트 시작 시 호출) - V100 32GB 최적화
+
     Args:
         gpu_id: 사용할 GPU ID
         memory_fraction: GPU 메모리 사용 비율 (0.0 ~ 1.0)
@@ -37,10 +37,16 @@ def setup_gpu_environment(gpu_id: int = 0, memory_fraction: float = 0.95):
     os.environ['FLAGS_fraction_of_gpu_memory_to_use'] = str(memory_fraction)
     os.environ['FLAGS_eager_delete_tensor_gb'] = '0.0'  # 텐서 즉시 삭제
     os.environ['FLAGS_memory_fraction_of_eager_deletion'] = '1.0'  # 메모리 즉시 해제
-    
-    print(f"GPU 환경 설정 완료:")
+
+    # V100 최적화 설정
+    os.environ['FLAGS_cudnn_exhaustive_search'] = '1'  # cuDNN 최적 알고리즘 탐색
+    os.environ['FLAGS_conv_workspace_size_limit'] = '4096'  # convolution workspace 크기 (MB)
+    os.environ['FLAGS_cudnn_batchnorm_spatial_persistent'] = '1'  # BatchNorm 최적화
+
+    print(f"GPU 환경 설정 완료 (V100 32GB 최적화):")
     print(f"  CUDA_VISIBLE_DEVICES: {gpu_id}")
     print(f"  메모리 사용 비율: {memory_fraction * 100:.0f}%")
+    print(f"  cuDNN 최적화: 활성화")
 
 
 def verify_gpu():
@@ -195,7 +201,11 @@ def create_korean_dict(data_dir: Path, output_file: Path):
     # 기본 한글 완성형 추가 (가-힣)
     for code in range(0xAC00, 0xD7A4):
         chars.add(chr(code))
-    
+
+    # 한글 자모 추가 (ㄱ-ㅎ, ㅏ-ㅣ)
+    for code in range(0x3131, 0x3164):  # 한글 호환 자모 (초성 + 중성)
+        chars.add(chr(code))
+
     # 숫자, 영문, 특수문자 추가
     chars.update('0123456789')
     chars.update('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -219,39 +229,49 @@ def create_korean_dict(data_dir: Path, output_file: Path):
 # ============================================================
 
 def create_config_file(data_dir: Path, config_file: Path, pretrain_model_path: str,
-                       batch_size: int = 128, epoch_num: int = 100, learning_rate: float = 0.0005):
+                       batch_size: int = 512, epoch_num: int = 100, learning_rate: float = 0.001,
+                       num_workers: int = 8, use_amp: bool = True):
     """
-    PaddleOCR 학습 설정 파일 생성
+    PaddleOCR 학습 설정 파일 생성 (V100 32GB 최적화)
     """
     print("\n" + "=" * 60)
-    print("3단계: 설정 파일 생성")
+    print("3단계: 설정 파일 생성 (V100 32GB 최적화)")
     print("=" * 60)
-    
+
     # 경로를 forward slash로 변환 (YAML 호환)
     def to_posix(path):
         return str(path).replace('\\', '/')
-    
+
+    # AMP 설정 (Mixed Precision - FP16)
+    amp_config = ""
+    if use_amp:
+        amp_config = """
+  # Mixed Precision Training (FP16)
+  use_amp: true
+  amp_level: O1
+  scale_loss: 1024.0"""
+
     config_content = f'''Global:
   debug: false
   use_gpu: true
   epoch_num: {epoch_num}
   log_smooth_window: 20
-  print_batch_step: 10
+  print_batch_step: 50
   save_model_dir: ./output/rec_korean_finetune
-  save_epoch_step: 10
-  eval_batch_step: [0, 500]
+  save_epoch_step: 5
+  eval_batch_step: [0, 1000]
   cal_metric_during_train: true
   pretrained_model: {pretrain_model_path}
   checkpoints:
   save_inference_dir:
   use_visualdl: false
-  infer_img: 
+  infer_img:
   character_dict_path: {to_posix(data_dir / 'korean_dict.txt')}
   max_text_length: 50
   infer_mode: false
   use_space_char: true
-  distributed: true
-  save_res_path: ./output/rec/predicts.txt
+  distributed: false
+  save_res_path: ./output/rec/predicts.txt{amp_config}
 
 Optimizer:
   name: Adam
@@ -260,10 +280,10 @@ Optimizer:
   lr:
     name: Cosine
     learning_rate: {learning_rate}
-    warmup_epoch: 5
+    warmup_epoch: 2
   regularizer:
     name: L2
-    factor: 3.0e-05
+    factor: 1.0e-05
 
 Architecture:
   model_type: rec
@@ -296,7 +316,7 @@ Loss:
     - CTCLoss:
     - SARLoss:
 
-PostProcess:  
+PostProcess:
   name: CTCLabelDecode
 
 Metric:
@@ -334,7 +354,8 @@ Train:
     shuffle: true
     batch_size_per_card: {batch_size}
     drop_last: true
-    num_workers: 4
+    num_workers: {num_workers}
+    use_shared_memory: false
 
 Eval:
   dataset:
@@ -360,16 +381,19 @@ Eval:
     shuffle: false
     drop_last: false
     batch_size_per_card: {batch_size}
-    num_workers: 4
+    num_workers: {num_workers}
+    use_shared_memory: false
 '''
     
     with open(config_file, 'w', encoding='utf-8') as f:
         f.write(config_content)
-    
+
     print(f"설정 파일 저장: {config_file}")
     print(f"  Batch Size: {batch_size}")
     print(f"  Epoch: {epoch_num}")
     print(f"  Learning Rate: {learning_rate}")
+    print(f"  Num Workers: {num_workers}")
+    print(f"  Mixed Precision (AMP): {'활성화' if use_amp else '비활성화'}")
 
 
 # ============================================================
@@ -615,16 +639,20 @@ def main():
     parser.add_argument('--model-dir', type=str, default='models/paddleocr_korean_finetuned',
                         help='최종 모델 저장 디렉토리')
     
-    # 학습 설정
-    parser.add_argument('--batch-size', type=int, default=128,
-                        help='배치 크기 (기본값: 128)')
-    parser.add_argument('--epochs', type=int, default=100,
-                        help='에폭 수 (기본값: 100)')
-    parser.add_argument('--lr', type=float, default=0.0005,
-                        help='학습률 (기본값: 0.0005)')
+    # 학습 설정 (V100 32GB 최적화 기본값)
+    parser.add_argument('--batch-size', type=int, default=256,
+                        help='배치 크기 (기본값: 256)')
+    parser.add_argument('--epochs', type=int, default=50,
+                        help='에폭 수 (기본값: 50)')
+    parser.add_argument('--lr', type=float, default=0.001,
+                        help='학습률 (기본값: 0.001)')
     parser.add_argument('--train-ratio', type=float, default=0.9,
                         help='Train/Val 분할 비율 (기본값: 0.9)')
-    
+    parser.add_argument('--num-workers', type=int, default=4,
+                        help='데이터 로딩 워커 수 (기본값: 4)')
+    parser.add_argument('--no-amp', action='store_true',
+                        help='Mixed Precision (AMP) 비활성화')
+
     # GPU 설정
     parser.add_argument('--gpu', type=int, default=7,
                         help='사용할 GPU ID (기본값: 7)')
@@ -689,7 +717,9 @@ def main():
             data_dir, config_file, pretrain_model_path,
             batch_size=args.batch_size,
             epoch_num=args.epochs,
-            learning_rate=args.lr
+            learning_rate=args.lr,
+            num_workers=args.num_workers,
+            use_amp=not args.no_amp
         )
     
     # 5. 학습

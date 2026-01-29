@@ -9,12 +9,15 @@ OCR 학습 데이터 생성기
 import json
 import random
 import argparse
+import multiprocessing as mp
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional
+from functools import partial
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from faker import Faker
+from tqdm import tqdm
 
 
 # 한국어 Faker 인스턴스
@@ -367,6 +370,42 @@ def generate_random_shipping_data() -> dict:
     }
 
 
+def generate_single_worker(args):
+    """
+    병렬 처리용 워커 함수 (모듈 레벨에서 정의해야 pickle 가능)
+    """
+    idx, output_dir, template_path, font_path, effect_config = args
+
+    # 각 워커에서 generator 인스턴스 생성
+    generator = ShippingLabelGenerator(template_path=template_path, font_path=font_path)
+
+    output_path = Path(output_dir)
+
+    # 랜덤 데이터 생성
+    data = generate_random_shipping_data()
+
+    # 이미지 생성
+    image = generator.render_image(data)
+
+    # 효과 적용
+    applied_effect = 'none'
+    if effect_config:
+        image, applied_effect = apply_image_effect(image, effect_config)
+
+    # 파일명 생성
+    image_filename = f"{idx:05d}.jpg"
+    image_path = output_path / 'images' / image_filename
+
+    # 이미지 저장
+    image.save(image_path, 'JPEG', quality=95)
+
+    # 라벨 생성
+    relative_image_path = f"images/{image_filename}"
+    label = generator.generate_label_json(data, relative_image_path)
+
+    return label, applied_effect
+
+
 class ShippingLabelGenerator:
     """운송장 라벨 이미지 생성기"""
     
@@ -586,23 +625,24 @@ class ShippingLabelGenerator:
         
         return image_path, label, applied_effect
     
-    def generate_batch(self, count: int, output_dir: str = 'generated', start_index: int = 1):
+    def generate_batch(self, count: int, output_dir: str = 'generated', start_index: int = 1, num_workers: int = None):
         """
-        배치로 이미지와 라벨 생성
-        
+        배치로 이미지와 라벨 생성 (병렬 처리)
+
         Args:
             count: 생성할 이미지 수
             output_dir: 출력 디렉토리
             start_index: 시작 인덱스 (기본값: 1)
+            num_workers: 병렬 처리 워커 수 (기본값: CPU 코어 수)
         """
         output_path = Path(output_dir)
         images_dir = output_path / 'images'
         labels_dir = output_path / 'labels'
-        
+
         # 디렉토리 생성
         images_dir.mkdir(parents=True, exist_ok=True)
         labels_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 효과 설정 로드
         effect_config = load_effect_config()
         if effect_config.get('apply_effect'):
@@ -610,28 +650,44 @@ class ShippingLabelGenerator:
             print(f"효과 적용: 비율 설정 {effect_ratios} (강도: {effect_config.get('effect_strength')})")
             if effect_config.get('random_strength'):
                 print(f"  랜덤 강도 활성화: 1~{effect_config.get('effect_strength')}")
-        
-        all_labels = []
-        effect_stats = {}  # 효과별 통계
-        
+
+        # 워커 수 설정
+        if num_workers is None:
+            num_workers = mp.cpu_count()
+        print(f"병렬 처리: {num_workers}개 워커 사용")
+
         if start_index > 1:
             print(f"시작 인덱스: {start_index} (이어서 생성)")
         print(f"생성 시작: {count}개의 이미지...")
-        
-        for i in range(count):
-            current_index = start_index + i
-            image_path, label, applied_effect = self.generate_single(output_path, current_index, effect_config)
+
+        # 병렬 처리를 위한 인덱스 리스트
+        indices = [start_index + i for i in range(count)]
+
+        # 워커 함수에 전달할 인자 준비
+        worker_args = [
+            (idx, str(output_path), str(self.template_path), self.font_path, effect_config)
+            for idx in indices
+        ]
+
+        # 병렬 처리 실행
+        all_labels = []
+        effect_stats = {}
+
+        with mp.Pool(processes=num_workers) as pool:
+            results = list(tqdm(
+                pool.imap(generate_single_worker, worker_args),
+                total=count,
+                desc="이미지 생성"
+            ))
+
+        # 결과 처리
+        for label, applied_effect in results:
             all_labels.append(label)
-            
-            # 효과 통계 업데이트
             effect_stats[applied_effect] = effect_stats.get(applied_effect, 0) + 1
-            
-            if (i + 1) % 10 == 0 or i == count - 1:
-                print(f"진행률: {i + 1}/{count} ({(i + 1) / count * 100:.1f}%)")
-        
+
         # 전체 라벨을 하나의 JSON 파일로 저장
         labels_file = labels_dir / 'labels.json'
-        
+
         # 이어서 생성하는 경우 기존 라벨 로드
         existing_labels = []
         if start_index > 1 and labels_file.exists():
@@ -641,31 +697,32 @@ class ShippingLabelGenerator:
                 print(f"기존 라벨 {len(existing_labels)}개 로드됨")
             except:
                 pass
-        
+
         # 기존 라벨 + 새 라벨 합치기
         combined_labels = existing_labels + all_labels
-        
+
         with open(labels_file, 'w', encoding='utf-8') as f:
             json.dump(combined_labels, f, ensure_ascii=False, indent=2)
-        
+
         # 개별 라벨 파일도 저장 (시작 인덱스 적용)
-        for i, label in enumerate(all_labels):
+        print("라벨 파일 저장 중...")
+        for i, label in enumerate(tqdm(all_labels, desc="라벨 저장")):
             current_index = start_index + i
             label_file = labels_dir / f"{current_index:05d}.json"
             with open(label_file, 'w', encoding='utf-8') as f:
                 json.dump(label, f, ensure_ascii=False, indent=2)
-        
+
         print(f"\n완료!")
         print(f"이미지 저장 위치: {images_dir}")
         print(f"라벨 저장 위치: {labels_dir}")
         print(f"통합 라벨 파일: {labels_file}")
         print(f"총 라벨 수: {len(combined_labels)}개")
-        
+
         # 효과별 통계 출력
         if effect_stats:
             print(f"\n=== 효과별 생성 통계 ===")
             effect_names = {
-                'none': '원본', 'blur': '흐림', 'mosaic': '모자이크', 
+                'none': '원본', 'blur': '흐림', 'mosaic': '모자이크',
                 'noise': '노이즈', 'combined': '복합'
             }
             for effect, cnt in sorted(effect_stats.items(), key=lambda x: -x[1]):
@@ -729,7 +786,13 @@ def main():
         action='store_true',
         help='기존 파일 삭제 후 새로 생성'
     )
-    
+    parser.add_argument(
+        '-w', '--workers',
+        type=int,
+        default=None,
+        help='병렬 처리 워커 수 (기본값: CPU 코어 수)'
+    )
+
     args = parser.parse_args()
     
     # 템플릿 경로 결정
@@ -783,7 +846,8 @@ def main():
     generator.generate_batch(
         count=args.count,
         output_dir=str(output_dir),
-        start_index=args.start_index
+        start_index=args.start_index,
+        num_workers=args.workers
     )
 
 

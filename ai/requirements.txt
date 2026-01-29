@@ -1,8 +1,13 @@
-#easyocr>=1.7.0
-torch>=2.0.0
-torchvision>=0.15.0
-openai>=1.0.0
-python-dotenv>=1.0.0
-httpx>=0.25.0
+# OCR 학습 데이터 생성
 Pillow>=10.0.0
 faker>=22.0.0
+
+# PaddleOCR 학습 (CUDA 12.x)
+paddlepaddle-gpu>=2.6.0
+paddleocr>=2.7.0
+
+# 기타 의존성
+PyYAML>=6.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+tqdm>=4.65.0

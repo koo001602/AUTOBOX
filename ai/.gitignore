@@ -37,3 +37,6 @@ env/
 # OS 파일
 .DS_Store
 Thumbs.db
+
+# 폰트파일
+fonts/

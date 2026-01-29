@@ -300,20 +300,6 @@ ROAD_PREFIXES = [
 # 도로명 접미사
 ROAD_SUFFIXES = ['로', '길', '대로']
 
-# 상세주소 건물 유형
-BUILDING_TYPES = [
-    '아파트', '빌라', '오피스텔', '주공아파트', '타워', '파크', '힐스', '빌딩',
-    '프라자', '센터', '하이츠', '맨션', '팰리스', '캐슬', '리버', '파크뷰',
-    '자이', '래미안', '푸르지오', '힐스테이트', '더샵', 'e편한세상', '롯데캐슬',
-    '아이파크', '센트럴', '스카이', '그랜드', '프레스티지', '로얄', '노블',
-]
-
-# 상세주소 동/호 표기
-UNIT_FORMATS = [
-    '{동}동 {호}호', '{동}-{호}', '제{동}동 제{호}호', '{동}동{호}호',
-    '{층}층 {호}호', '{동}동 {층}층', '{호}호',
-]
-
 
 def generate_korean_name() -> str:
     """한국어 이름 생성"""
@@ -333,97 +319,40 @@ def generate_region_code() -> str:
 
 
 def generate_korean_address() -> str:
-    """한국 주소 생성 (다양한 패턴 지원)"""
+    """
+    한국 주소 생성 (간단한 형태)
+    예: 광주광역시 남구 보문로 76
+    """
     # 시/도 선택
     province = random.choice(list(KOREAN_DISTRICTS.keys()))
     
     # 구/군 선택
     district = random.choice(KOREAN_DISTRICTS[province])
     
-    # 도로명 생성 방식 다양화
-    road_style = random.choice(['prefix_only', 'name_suffix', 'combined', 'famous'])
+    # 도로명 생성 (간단하게)
+    road_style = random.choice(['simple', 'prefix', 'name'])
     
-    if road_style == 'prefix_only':
-        # 접두사 + 접미사 (예: 중앙로, 문화길)
-        road_name = random.choice(ROAD_PREFIXES) + random.choice(ROAD_SUFFIXES)
-    elif road_style == 'name_suffix':
-        # 성씨 + 추가어 + 접미사 (예: 김문로, 이산길)
-        extras = ['', '문', '산', '천', '강', '정', '수', '화', '명', '덕', '원', '촌', '곡', '평', '들']
-        road_name = fake.last_name() + random.choice(extras) + random.choice(ROAD_SUFFIXES)
-    elif road_style == 'combined':
-        # 접두사 + 성씨 + 접미사 (예: 신김로, 동이길)
-        road_name = random.choice(ROAD_PREFIXES[:20]) + fake.last_name() + random.choice(ROAD_SUFFIXES)
-    else:  # famous
-        # 유명 도로명 스타일
-        famous_roads = [
-            '세종대로', '테헤란로', '강남대로', '올림픽로', '송파대로', '위례성대로',
-            '도산대로', '언주로', '삼성로', '영동대로', '학동로', '논현로', '역삼로',
-            '압구정로', '청담로', '선릉로', '봉은사로', '삼전로', '잠실로', '석촌호수로',
-            '명동길', '종로', '을지로', '퇴계로', '충무로', '마포대로', '여의대로',
-            '국회대로', '양화로', '홍대입구역로', '신촌로', '연세로', '이화여대길',
-            '광화문로', '사직로', '경복궁로', '창경궁로', '돈화문로', '대학로',
-            '혜화로', '성균관로', '낙산길', '이화장길', '충정로', '공덕로',
-            '상암로', '월드컵북로', '월드컵로', '디지털로', '가산디지털로',
-            '구로디지털로', '신도림로', '영등포로', '문래로', '당산로', '선유로',
+    if road_style == 'simple':
+        # 간단한 도로명 (예: 보문로, 중앙로, 역전로)
+        simple_prefixes = [
+            '보문', '중앙', '역전', '시청', '문화', '산업', '번영', '평화', '자유', '통일',
+            '세종', '광복', '독립', '민주', '정의', '희망', '미래', '새벽', '햇살', '바람',
+            '청산', '녹수', '백운', '명수', '석계', '한강', '낙동', '금강', '영산', '섬진',
+            '동문', '서문', '남문', '북문', '성내', '성외', '읍내', '장터', '시장', '공원',
         ]
-        road_name = random.choice(famous_roads)
-    
-    # 번지 (다양한 패턴)
-    number_style = random.choice(['simple', 'dash', 'detailed'])
-    if number_style == 'simple':
-        number = str(random.randint(1, 999))
-    elif number_style == 'dash':
-        number = f"{random.randint(1, 500)}-{random.randint(1, 50)}"
+        road_name = random.choice(simple_prefixes) + random.choice(ROAD_SUFFIXES)
+    elif road_style == 'prefix':
+        # 접두사 + 접미사 (예: 신문로, 구시장길)
+        road_name = random.choice(ROAD_PREFIXES[:30]) + random.choice(ROAD_SUFFIXES)
     else:
-        number = str(random.randint(1, 200))
+        # 성씨 + 접미사 (예: 김로, 이길)
+        extras = ['', '문', '산', '천', '정', '덕', '원']
+        road_name = fake.last_name() + random.choice(extras) + random.choice(ROAD_SUFFIXES)
     
-    # 상세주소 생성 (다양한 패턴)
-    detail = ''
-    detail_prob = random.random()
+    # 번지
+    number = random.randint(1, 500)
     
-    if detail_prob < 0.3:
-        # 상세주소 없음
-        pass
-    elif detail_prob < 0.5:
-        # 건물명 + 동/호
-        building = random.choice(BUILDING_TYPES)
-        dong = random.randint(100, 130)
-        ho = random.randint(101, 2505)
-        format_choice = random.choice([
-            f" ({building} {dong}동 {ho}호)",
-            f", {building} {dong}동 {ho}호",
-            f" {building} {dong}-{ho}",
-        ])
-        detail = format_choice
-    elif detail_prob < 0.7:
-        # 층/호만
-        floor = random.randint(1, 30)
-        ho = random.randint(1, 20)
-        detail = random.choice([
-            f" {floor}층 {ho}호",
-            f" {floor}층",
-            f" {floor}F",
-        ])
-    elif detail_prob < 0.85:
-        # 동/호만
-        dong = random.randint(100, 130)
-        ho = random.randint(101, 2505)
-        detail = random.choice([
-            f" {dong}동 {ho}호",
-            f" {dong}-{ho}",
-            f" 제{dong}동 제{ho}호",
-        ])
-    else:
-        # 건물명만
-        building = random.choice(BUILDING_TYPES)
-        building_num = random.randint(1, 10)
-        detail = random.choice([
-            f" ({building})",
-            f", {building} {building_num}차",
-            f" {building}",
-        ])
-    
-    return f"{province} {district} {road_name} {number}{detail}"
+    return f"{province} {district} {road_name} {number}"
 
 
 def generate_random_shipping_data() -> dict:
@@ -454,23 +383,66 @@ class ShippingLabelGenerator:
         # 폰트 설정
         self.font_path = font_path
         if font_path is None:
-            # Windows 기본 폰트 경로들
+            # 스크립트 위치 기준 fonts 폴더
+            script_dir = Path(__file__).parent
+            local_fonts_dir = script_dir / 'fonts'
+            
+            # Windows / Linux / macOS 폰트 경로들
             possible_fonts = [
+                # 프로젝트 로컬 폰트 (우선)
+                str(local_fonts_dir / 'NanumGothic.ttf'),
+                str(local_fonts_dir / 'NanumGothicBold.ttf'),
+                str(local_fonts_dir / 'malgun.ttf'),
+                # Windows
                 'C:/Windows/Fonts/malgun.ttf',      # 맑은 고딕
-                'C:/Windows/Fonts/malgunbd.ttf',   # 맑은 고딕 Bold
+                'C:/Windows/Fonts/malgunbd.ttf',    # 맑은 고딕 Bold
                 'C:/Windows/Fonts/NanumGothic.ttf', # 나눔고딕
                 'C:/Windows/Fonts/gulim.ttc',       # 굴림
-                '/usr/share/fonts/truetype/nanum/NanumGothic.ttf',  # Linux
-                '/System/Library/Fonts/AppleGothic.ttf',  # macOS
+                # Linux - 나눔폰트
+                '/usr/share/fonts/truetype/nanum/NanumGothic.ttf',
+                '/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf',
+                '/usr/share/fonts/nanum/NanumGothic.ttf',
+                '/usr/share/fonts/nanum/NanumGothicBold.ttf',
+                # Linux - 나눔폰트 (다른 경로)
+                '/usr/share/fonts/truetype/NanumGothic.ttf',
+                '/usr/share/fonts/NanumGothic.ttf',
+                # Linux - 본고딕 (Noto Sans CJK)
+                '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',
+                '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+                # Linux - 은폰트
+                '/usr/share/fonts/truetype/unfonts-core/UnDotum.ttf',
+                '/usr/share/fonts/truetype/unfonts/UnDotum.ttf',
+                # Linux - D2Coding
+                '/usr/share/fonts/truetype/d2coding/D2Coding.ttf',
+                # macOS
+                '/System/Library/Fonts/AppleGothic.ttf',
+                '/Library/Fonts/NanumGothic.ttf',
             ]
             for font in possible_fonts:
                 if Path(font).exists():
                     self.font_path = font
+                    print(f"폰트 발견: {font}")
                     break
+            
+            if self.font_path is None:
+                print("=" * 60)
+                print("경고: 한글 폰트를 찾을 수 없습니다!")
+                print("=" * 60)
+                print("\n다음 명령으로 폰트를 다운로드하세요:\n")
+                print(f"  mkdir -p {local_fonts_dir}")
+                print(f"  cd {local_fonts_dir}")
+                print("  wget https://github.com/naver/nanumfont/releases/download/VER2.5/NanumGothic.ttf")
+                print("  wget https://github.com/naver/nanumfont/releases/download/VER2.5/NanumGothicBold.ttf")
+                print("=" * 60)
         
         self.font_path_bold = None
-        if self.font_path and 'malgun.ttf' in self.font_path:
-            self.font_path_bold = self.font_path.replace('malgun.ttf', 'malgunbd.ttf')
+        if self.font_path:
+            if 'malgun.ttf' in self.font_path:
+                self.font_path_bold = self.font_path.replace('malgun.ttf', 'malgunbd.ttf')
+            elif 'NanumGothic.ttf' in self.font_path:
+                self.font_path_bold = self.font_path.replace('NanumGothic.ttf', 'NanumGothicBold.ttf')
         
         # 마스킹할 영역 정의 (텍스트를 덮어쓸 영역)
         self.mask_regions = self._define_mask_regions()

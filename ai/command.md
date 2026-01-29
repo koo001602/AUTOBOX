@@ -1,0 +1,2 @@
+# 7시간만에 알아낸 주피터 환경
+LD_LIBRARY_PATH=/home/ji14a403/.conda/envs/paddle_new/lib:$LD_LIBRARY_PATHCUDA_VISIBLE_DEVICES=1/home/ji14a403/.conda/envs/paddle_new/bin/pythontools/train.py -c rec_autobox_finetune.yml

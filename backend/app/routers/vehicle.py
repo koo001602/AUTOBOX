@@ -385,9 +385,11 @@ async def send_box_count_command(request: BoxCountCommandRequest):
     success = mqtt_service.publish(mqtt_topic, payload, qos=1)
     
     if not success:
-        # MQTT 연결이 안 되어 있어도 일단 성공 응답 (개발/테스트 환경 고려)
-        # 실제 운영에서는 에러 처리 가능
-        pass
+        # 여기에 알맞느 에러메시지
+        raise HTTPException(
+            status_code=500,
+            detail="명령을 라즈베리파이에 전송하지 못했습니다. MQTT 연결 상태를 확인해주세요."
+        )
     
     # WebSocket으로도 브로드캐스트 (실시간 UI 업데이트용)
     await manager.broadcast({

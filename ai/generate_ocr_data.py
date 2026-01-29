@@ -28,8 +28,8 @@ EFFECT_CONFIG_FILE = Path(__file__).parent / "effect_config.json"
 def load_effect_config():
     """효과 설정 로드"""
     default = {
-        'apply_effect': False,
-        'effect_type': 'none',
+        'apply_effect': True,
+        'effect_ratios': {'none': 100},  # 효과별 비율
         'effect_strength': 5,
         'random_strength': False,
     }
@@ -42,18 +42,29 @@ def load_effect_config():
     return default
 
 
-def apply_image_effect(image: Image.Image, effect_config: dict) -> Image.Image:
-    """이미지에 효과 적용"""
-    if not effect_config.get('apply_effect', False):
-        return image
+def select_effect_by_ratio(effect_ratios: dict) -> str:
+    """비율에 따라 효과 선택"""
+    if not effect_ratios:
+        return 'none'
     
-    effect_type = effect_config.get('effect_type', 'none')
-    strength = effect_config.get('effect_strength', 5)
+    # 비율을 누적 확률로 변환
+    total = sum(effect_ratios.values())
+    if total == 0:
+        return 'none'
     
-    # 랜덤 강도
-    if effect_config.get('random_strength', False):
-        strength = random.randint(1, strength)
+    rand_val = random.random() * total
+    cumulative = 0
     
+    for effect, ratio in effect_ratios.items():
+        cumulative += ratio
+        if rand_val <= cumulative:
+            return effect
+    
+    return list(effect_ratios.keys())[-1]
+
+
+def apply_single_effect(image: Image.Image, effect_type: str, strength: int) -> Image.Image:
+    """단일 효과 적용"""
     if effect_type == 'none':
         return image
     elif effect_type == 'blur':
@@ -63,9 +74,10 @@ def apply_image_effect(image: Image.Image, effect_config: dict) -> Image.Image:
                             Image.Resampling.BILINEAR)
         return small.resize(image.size, Image.Resampling.NEAREST)
     elif effect_type == 'noise':
-        pixels = image.load()
-        for i in range(image.width):
-            for j in range(image.height):
+        img_copy = image.copy()
+        pixels = img_copy.load()
+        for i in range(img_copy.width):
+            for j in range(img_copy.height):
                 if random.random() < strength / 100:
                     r, g, b = pixels[i, j][:3]
                     noise = random.randint(-strength * 5, strength * 5)
@@ -74,9 +86,48 @@ def apply_image_effect(image: Image.Image, effect_config: dict) -> Image.Image:
                         max(0, min(255, g + noise)),
                         max(0, min(255, b + noise))
                     )
-        return image
+        return img_copy
+    elif effect_type == 'combined':
+        # 복합 효과: blur + noise
+        img = image.filter(ImageFilter.GaussianBlur(radius=strength // 2 + 1))
+        pixels = img.load()
+        for i in range(img.width):
+            for j in range(img.height):
+                if random.random() < strength / 150:
+                    r, g, b = pixels[i, j][:3]
+                    noise = random.randint(-strength * 3, strength * 3)
+                    pixels[i, j] = (
+                        max(0, min(255, r + noise)),
+                        max(0, min(255, g + noise)),
+                        max(0, min(255, b + noise))
+                    )
+        return img
     
     return image
+
+
+def apply_image_effect(image: Image.Image, effect_config: dict, selected_effect: str = None) -> tuple:
+    """이미지에 효과 적용
+    
+    Returns:
+        tuple: (처리된 이미지, 적용된 효과명)
+    """
+    if not effect_config.get('apply_effect', False):
+        return image, 'none'
+    
+    # 효과 선택 (이미 선택된 효과가 있으면 사용, 없으면 비율에 따라 선택)
+    if selected_effect is None:
+        effect_ratios = effect_config.get('effect_ratios', {'none': 100})
+        selected_effect = select_effect_by_ratio(effect_ratios)
+    
+    strength = effect_config.get('effect_strength', 5)
+    
+    # 랜덤 강도
+    if effect_config.get('random_strength', False):
+        strength = random.randint(1, strength)
+    
+    result_image = apply_single_effect(image, selected_effect, strength)
+    return result_image, selected_effect
 
 
 @dataclass
@@ -394,7 +445,7 @@ class ShippingLabelGenerator:
             effect_config: 효과 설정 (optional)
             
         Returns:
-            (이미지 경로, 라벨 데이터)
+            (이미지 경로, 라벨 데이터, 적용된 효과)
         """
         # 랜덤 데이터 생성
         data = generate_random_shipping_data()
@@ -403,8 +454,9 @@ class ShippingLabelGenerator:
         image = self.render_image(data)
         
         # 효과 적용
+        applied_effect = 'none'
         if effect_config:
-            image = apply_image_effect(image, effect_config)
+            image, applied_effect = apply_image_effect(image, effect_config)
         
         # 파일명 생성
         image_filename = f"{index:05d}.jpg"
@@ -417,15 +469,16 @@ class ShippingLabelGenerator:
         relative_image_path = f"images/{image_filename}"
         label = self.generate_label_json(data, relative_image_path)
         
-        return image_path, label
+        return image_path, label, applied_effect
     
-    def generate_batch(self, count: int, output_dir: str = 'generated'):
+    def generate_batch(self, count: int, output_dir: str = 'generated', start_index: int = 1):
         """
         배치로 이미지와 라벨 생성
         
         Args:
             count: 생성할 이미지 수
             output_dir: 출력 디렉토리
+            start_index: 시작 인덱스 (기본값: 1)
         """
         output_path = Path(output_dir)
         images_dir = output_path / 'images'
@@ -438,27 +491,52 @@ class ShippingLabelGenerator:
         # 효과 설정 로드
         effect_config = load_effect_config()
         if effect_config.get('apply_effect'):
-            print(f"효과 적용: {effect_config.get('effect_type')} (강도: {effect_config.get('effect_strength')})")
+            effect_ratios = effect_config.get('effect_ratios', {})
+            print(f"효과 적용: 비율 설정 {effect_ratios} (강도: {effect_config.get('effect_strength')})")
+            if effect_config.get('random_strength'):
+                print(f"  랜덤 강도 활성화: 1~{effect_config.get('effect_strength')}")
         
         all_labels = []
+        effect_stats = {}  # 효과별 통계
         
+        if start_index > 1:
+            print(f"시작 인덱스: {start_index} (이어서 생성)")
         print(f"생성 시작: {count}개의 이미지...")
         
         for i in range(count):
-            image_path, label = self.generate_single(output_path, i + 1, effect_config)
+            current_index = start_index + i
+            image_path, label, applied_effect = self.generate_single(output_path, current_index, effect_config)
             all_labels.append(label)
+            
+            # 효과 통계 업데이트
+            effect_stats[applied_effect] = effect_stats.get(applied_effect, 0) + 1
             
             if (i + 1) % 10 == 0 or i == count - 1:
                 print(f"진행률: {i + 1}/{count} ({(i + 1) / count * 100:.1f}%)")
         
         # 전체 라벨을 하나의 JSON 파일로 저장
         labels_file = labels_dir / 'labels.json'
-        with open(labels_file, 'w', encoding='utf-8') as f:
-            json.dump(all_labels, f, ensure_ascii=False, indent=2)
         
-        # 개별 라벨 파일도 저장
+        # 이어서 생성하는 경우 기존 라벨 로드
+        existing_labels = []
+        if start_index > 1 and labels_file.exists():
+            try:
+                with open(labels_file, 'r', encoding='utf-8') as f:
+                    existing_labels = json.load(f)
+                print(f"기존 라벨 {len(existing_labels)}개 로드됨")
+            except:
+                pass
+        
+        # 기존 라벨 + 새 라벨 합치기
+        combined_labels = existing_labels + all_labels
+        
+        with open(labels_file, 'w', encoding='utf-8') as f:
+            json.dump(combined_labels, f, ensure_ascii=False, indent=2)
+        
+        # 개별 라벨 파일도 저장 (시작 인덱스 적용)
         for i, label in enumerate(all_labels):
-            label_file = labels_dir / f"{i + 1:05d}.json"
+            current_index = start_index + i
+            label_file = labels_dir / f"{current_index:05d}.json"
             with open(label_file, 'w', encoding='utf-8') as f:
                 json.dump(label, f, ensure_ascii=False, indent=2)
         
@@ -466,6 +544,19 @@ class ShippingLabelGenerator:
         print(f"이미지 저장 위치: {images_dir}")
         print(f"라벨 저장 위치: {labels_dir}")
         print(f"통합 라벨 파일: {labels_file}")
+        print(f"총 라벨 수: {len(combined_labels)}개")
+        
+        # 효과별 통계 출력
+        if effect_stats:
+            print(f"\n=== 효과별 생성 통계 ===")
+            effect_names = {
+                'none': '원본', 'blur': '흐림', 'mosaic': '모자이크', 
+                'noise': '노이즈', 'combined': '복합'
+            }
+            for effect, cnt in sorted(effect_stats.items(), key=lambda x: -x[1]):
+                name = effect_names.get(effect, effect)
+                percent = cnt / count * 100
+                print(f"  {name}: {cnt}개 ({percent:.1f}%)")
 
 
 def main():
@@ -495,6 +586,34 @@ def main():
         default=None,
         help='폰트 파일 경로'
     )
+    parser.add_argument(
+        '--start-index',
+        type=int,
+        default=1,
+        help='시작 인덱스 (기본값: 1, 이어서 생성할 때 사용)'
+    )
+    parser.add_argument(
+        '--effect',
+        type=str,
+        default=None,
+        help='효과 비율 설정 (예: blur:50,mosaic:50 또는 none:100)'
+    )
+    parser.add_argument(
+        '--strength',
+        type=int,
+        default=5,
+        help='효과 강도 (1-20, 기본값: 5)'
+    )
+    parser.add_argument(
+        '--random-strength',
+        action='store_true',
+        help='랜덤 강도 사용 (1~설정값)'
+    )
+    parser.add_argument(
+        '--clear',
+        action='store_true',
+        help='기존 파일 삭제 후 새로 생성'
+    )
     
     args = parser.parse_args()
     
@@ -514,6 +633,32 @@ def main():
     script_dir = Path(__file__).parent
     output_dir = script_dir / args.output
     
+    # 기존 파일 삭제 옵션
+    if args.clear and output_dir.exists():
+        import shutil
+        shutil.rmtree(output_dir)
+        print(f"기존 폴더 삭제됨: {output_dir}")
+    
+    # CLI에서 효과 설정이 주어진 경우 effect_config.json 업데이트
+    if args.effect:
+        effect_ratios = {}
+        for part in args.effect.split(','):
+            if ':' in part:
+                effect_name, ratio = part.split(':')
+                effect_ratios[effect_name.strip()] = int(ratio.strip())
+        
+        effect_config = {
+            'apply_effect': True,
+            'effect_ratios': effect_ratios,
+            'effect_strength': args.strength,
+            'random_strength': args.random_strength,
+        }
+        
+        with open(EFFECT_CONFIG_FILE, 'w') as f:
+            json.dump(effect_config, f, indent=2)
+        
+        print(f"효과 설정: {effect_ratios}, 강도: {args.strength}")
+    
     # 생성기 초기화 및 실행
     generator = ShippingLabelGenerator(
         template_path=str(template_path),
@@ -522,7 +667,8 @@ def main():
     
     generator.generate_batch(
         count=args.count,
-        output_dir=str(output_dir)
+        output_dir=str(output_dir),
+        start_index=args.start_index
     )
 
 

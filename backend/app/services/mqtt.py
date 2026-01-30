@@ -230,7 +230,7 @@ class MQTTService:
             if isinstance(payload, dict):
                 payload = json.dumps(payload)
             
-            full_topic = f"{settings.MQTT_TOPIC_PREFIX}/{topic}"
+            full_topic = f"server_msg/{topic}"
             result = self.client.publish(full_topic, payload, qos=qos, retain=retain)
             
             if result.rc == mqtt.MQTT_ERR_SUCCESS:

@@ -40,3 +40,7 @@ Thumbs.db
 
 # 폰트파일
 fonts/
+
+
+# 이미지 데이터
+paddle_recong_dataset/*

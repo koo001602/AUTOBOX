@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # MQTT Configuration
     MQTT_BROKER_HOST: str = "localhost"
     MQTT_BROKER_PORT: int = 1883
-    MQTT_TOPIC_PREFIX: str = "autobox"
+    MQTT_TOPIC_PREFIX: str = "factory_msg"
     MQTT_CLIENT_ID: str = "autobox-backend"
     MQTT_USERNAME: str = ""
     MQTT_PASSWORD: str = ""

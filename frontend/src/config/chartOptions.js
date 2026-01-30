@@ -15,10 +15,10 @@ const getCurrentTheme = () => {
  */
 const getThemeColors = () => {
   const isDark = getCurrentTheme() === 'dark'
-  
+
   return {
     text: isDark ? '#94a3b8' : '#475569',
-    grid: isDark ? '#1e293b' : '#e2e8f0',
+    grid: isDark ? '#1e293b' : '#cbd5e1',
     background: 'transparent',
     completed: '#10b981',
     totalCompleted: '#10b981',
@@ -35,7 +35,7 @@ const getThemeColors = () => {
 export const getBaseChartOptions = (options = {}) => {
   const colors = getThemeColors()
   const isDark = getCurrentTheme() === 'dark'
-  
+
   return {
     chart: {
       type: 'bar',
@@ -49,7 +49,7 @@ export const getBaseChartOptions = (options = {}) => {
       ...options.chart
     },
     theme: { mode: isDark ? 'dark' : 'light' },
-    tooltip: { 
+    tooltip: {
       theme: isDark ? 'dark' : 'light',
       style: {
         fontSize: '12px',
@@ -76,7 +76,7 @@ export const getBaseChartOptions = (options = {}) => {
  */
 export const getDashboardBarChartOptions = (maxValue = 10) => {
   const colors = getThemeColors()
-  
+
   return getBaseChartOptions({
     chart: {
       type: 'bar',

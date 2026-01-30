@@ -84,8 +84,8 @@ defineProps({
 .panel-body {
   flex: 1;
   padding: 20px;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 350px;
+  overflow-y: auto;
   position: relative;
 }
 
@@ -94,6 +94,7 @@ defineProps({
   align-items: center;
   justify-content: center;
   padding: 12px;
+  min-height: 320px;
 }
 
 .chart-legend {

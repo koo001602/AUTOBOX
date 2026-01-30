@@ -119,10 +119,9 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
 .dashboard {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
   padding: 16px 24px;
   gap: 20px;
-  overflow: hidden;
 }
 
 /* Header */
@@ -143,6 +142,7 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(8px);
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .control-group {
@@ -286,22 +286,40 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
   display: grid;
   grid-template-columns: 1fr 280px 1.4fr;
   gap: 20px;
-  flex: 1;
-  min-height: 0;
+  min-height: 400px;
 }
 
 /* Responsive */
 @media (max-width: 1200px) {
   .main-content {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    gap: 16px;
+  }
+  
+  .header-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .control-group {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 
 @media (max-width: 768px) {
   .dashboard { padding: 12px; gap: 12px; }
-  .main-content { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr; }
-  .header-left { padding: 8px; }
-  .control-label { display: none; }
+  .main-content { 
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 12px;
+  }
+  .header-left { padding: 12px; }
+  .control-label { font-size: 9px; }
+  .btn-send { width: 100%; justify-content: center; }
+  .control-divider { display: none; }
 }
 </style>

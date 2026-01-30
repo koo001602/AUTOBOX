@@ -817,12 +817,11 @@ onUnmounted(() => {
    ============================================= */
 
 .live-view {
-  height: 100%;
+  min-height: 100%;
   padding: 20px 24px;
   display: grid;
   grid-template-columns: 1fr 1fr 380px;
   gap: 24px;
-  overflow: hidden;
 }
 
 .live-left {
@@ -841,6 +840,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -903,7 +904,7 @@ onUnmounted(() => {
   flex: 1;
   padding: 20px;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
   position: relative;
 }
 
@@ -1750,7 +1751,8 @@ onUnmounted(() => {
 @media (max-width: 1024px) {
   .live-view {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 16px;
   }
 
   .live-left,
@@ -1758,16 +1760,30 @@ onUnmounted(() => {
   .live-right {
     width: 100%;
     height: auto;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .video-panel {
+    min-height: 400px;
+  }
+
+  .map-panel {
+    min-height: 400px;
   }
 
   .video-container {
     aspect-ratio: 16/9;
-    max-height: 40vh;
+    min-height: 350px;
   }
 
   .map-container {
     aspect-ratio: 16/9;
-    max-height: 40vh;
+    min-height: 350px;
+  }
+
+  .history-panel {
+    min-height: 300px;
   }
 }
 </style>

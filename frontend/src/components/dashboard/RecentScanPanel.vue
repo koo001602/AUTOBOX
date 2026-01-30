@@ -98,8 +98,8 @@ const formatProcessTime = (seconds) => {
 .panel-body {
   flex: 1;
   padding: 20px;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 200px;
+  overflow-y: auto;
   position: relative;
 }
 

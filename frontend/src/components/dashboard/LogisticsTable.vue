@@ -194,7 +194,7 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
 /* Table Styling */
 .table-body {
   padding: 0;
-  min-height: 300px;
+  min-height: 400px;
 }
 
 .table-wrapper {
@@ -281,7 +281,7 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
 .empty-state-cell {
   padding: 0 !important;
   border: none !important;
-  height: 250px;
+  height: 350px;
   width: 100%;
 }
 

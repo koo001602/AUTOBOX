@@ -5,7 +5,7 @@ import { useSystemStatus, useTheme, useAlerts } from '../composables'
 import { getMockMode } from '../api'
 
 // Composables
-const { batteryLevel, isConnected, connectionText } = useSystemStatus()
+const { batteryLevel, isConnected } = useSystemStatus()
 const { theme, toggleTheme } = useTheme()
 const { alerts } = useAlerts()
 
@@ -17,7 +17,6 @@ const isMockMode = getMockMode()
 </script>
 
 <template>
-  <!-- 상단 상태바 (간소화) -->
   <header class="status-bar">
     <div class="status-bar-left">
       <img src="/assets/logo_original.png" alt="Autobox" class="status-logo" />
@@ -26,15 +25,12 @@ const isMockMode = getMockMode()
     </div>
     
     <div class="status-bar-right">
-      <!-- 시스템 상태 그룹 -->
       <div class="status-group">
-        <!-- 연결 상태 -->
         <div class="status-chip" :class="isConnected ? 'online' : 'offline'">
           <span class="chip-dot"></span>
           <span class="chip-text">{{ isConnected ? 'Online' : 'Error' }}</span>
         </div>
         
-        <!-- 배터리 -->
         <div class="status-chip battery" :class="batteryLevel > 20 ? 'ok' : 'low'">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="7" width="16" height="10" rx="2" ry="2" />
@@ -44,7 +40,6 @@ const isMockMode = getMockMode()
         </div>
       </div>
 
-      <!-- 알림 -->
       <button class="status-btn" :class="{ 'has-alerts': alertCount > 0 }">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
@@ -53,7 +48,6 @@ const isMockMode = getMockMode()
         <span v-if="alertCount > 0" class="alert-badge">{{ alertCount > 99 ? '99+' : alertCount }}</span>
       </button>
 
-      <!-- 테마 토글 -->
       <button class="status-btn" @click="toggleTheme">
         <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="4"/>
@@ -73,7 +67,6 @@ const isMockMode = getMockMode()
     </div>
   </header>
 
-  <!-- 하단 탭바 -->
   <nav class="bottom-tab-bar">
     <RouterLink to="/" class="tab-item" active-class="active">
       <div class="tab-icon">
@@ -100,7 +93,7 @@ const isMockMode = getMockMode()
     <RouterLink to="/settings" class="tab-item" active-class="active">
       <div class="tab-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
           <circle cx="12" cy="12" r="3"/>
         </svg>
       </div>
@@ -111,24 +104,26 @@ const isMockMode = getMockMode()
 
 <style scoped>
 /* =============================================
-   Mobile App Style Navigation
+   상단 상태바 (Header)
    ============================================= */
-
-/* 상단 상태바 */
 .status-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 56px;
-  padding: 0 16px;
+  height: 60px; /* 기본 높이 */
+  padding: 0 20px;
+  
+  /* [핵심 수정] 상단 노치 영역 대응 */
+  padding-top: env(safe-area-inset-top); 
+  
   background: var(--glass-header);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
   z-index: 50;
-  gap: 16px;
-  overflow: hidden;
+  gap: 12px;
+  min-width: 0;
 }
 
 .status-bar-left {
@@ -136,12 +131,14 @@ const isMockMode = getMockMode()
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .status-logo {
   height: 28px;
   width: auto;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 :global([data-theme="dark"]) .status-logo {
@@ -155,6 +152,7 @@ const isMockMode = getMockMode()
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  white-space: nowrap;
 }
 
 .mock-badge {
@@ -166,6 +164,7 @@ const isMockMode = getMockMode()
   border-radius: 4px;
   color: #f59e0b;
   letter-spacing: 0.05em;
+  flex-shrink: 0;
 }
 
 .status-bar-right {
@@ -186,7 +185,6 @@ const isMockMode = getMockMode()
   border: 1px solid var(--glass-border);
 }
 
-/* 상태 칩 */
 .status-chip {
   display: flex;
   align-items: center;
@@ -231,7 +229,6 @@ const isMockMode = getMockMode()
   flex-shrink: 0;
 }
 
-/* 상태 버튼 */
 .status-btn {
   position: relative;
   display: flex;
@@ -245,6 +242,7 @@ const isMockMode = getMockMode()
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .status-btn:hover {
@@ -274,9 +272,8 @@ const isMockMode = getMockMode()
 }
 
 /* =============================================
-   하단 탭바
+   하단 탭바 (Bottom Navigation)
    ============================================= */
-
 .bottom-tab-bar {
   position: fixed;
   bottom: 0;
@@ -285,8 +282,14 @@ const isMockMode = getMockMode()
   display: flex;
   justify-content: space-around;
   align-items: center;
+  
+  /* 탭바 기본 높이 */
   height: 70px;
-  padding-bottom: env(safe-area-inset-bottom, 8px);
+  
+  /* [핵심 수정] 아이폰 하단 홈 바(Home Indicator) 영역 확보 */
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box; /* 패딩을 높이 계산에서 제외 */
+  
   background: var(--glass-header);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -348,7 +351,6 @@ const isMockMode = getMockMode()
   font-weight: 700;
 }
 
-/* Hover State */
 .tab-item:hover:not(.active) {
   color: var(--text-secondary);
 }
@@ -357,7 +359,6 @@ const isMockMode = getMockMode()
   background: var(--overlay-lighter);
 }
 
-/* Active Indicator */
 .tab-item.active::before {
   content: '';
   position: absolute;
@@ -370,16 +371,31 @@ const isMockMode = getMockMode()
   border-radius: 0 0 3px 3px;
 }
 
-/* Responsive */
+/* =============================================
+   반응형 브레이크포인트
+   ============================================= */
+
+/* 태블릿/모바일 공통 수정 */
+@media (max-width: 768px) {
+  .status-bar {
+    height: 56px;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* 모바일 (600px 이하) */
 @media (max-width: 600px) {
   .status-bar {
-    padding: 0 12px;
+    padding: 0 10px;
+    padding-top: env(safe-area-inset-top);
   }
   
   .status-title {
-    display: none;
+    font-size: 16px; 
   }
   
+  /* 공간 확보를 위해 텍스트 숨김 */
   .status-chip .chip-text {
     display: none;
   }
@@ -392,15 +408,29 @@ const isMockMode = getMockMode()
     gap: 4px;
     padding: 3px;
   }
+  
+  .tab-label {
+    font-size: 10px;
+  }
 }
 
+/* 소형 모바일 (400px 이하) */
 @media (max-width: 400px) {
   .mock-badge {
     display: none;
   }
-  
   .status-group {
     display: none;
+  }
+  .status-bar-right {
+    gap: 4px;
+  }
+  .status-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .status-title {
+    font-size: 15px;
   }
 }
 </style>

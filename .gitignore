@@ -170,6 +170,37 @@ mlruns/
 wandb/
 
 # ================================
+# AI - PaddleOCR (ai/ 폴더)
+# ================================
+# 생성된 데이터
+ai/generated/*
+ai/paddle_data/
+ai/model_test/
+
+# PaddleOCR 클론 레포지토리
+ai/PaddleOCR/
+
+# 학습 결과물
+ai/output/
+*.pdparams
+*.pdopt
+*.pdmodel
+*.pdiparams
+
+# 설정 파일 (로컬 설정)
+ai/effect_config.json
+
+# 폰트파일
+ai/fonts/
+
+# 이미지 데이터
+ai/paddle_recong_dataset/*
+
+# AI Models
+ai/models/
+ai/model/
+
+# ================================
 # Embedded
 # ================================
 # Build files

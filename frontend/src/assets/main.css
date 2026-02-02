@@ -3,9 +3,7 @@
 /* App 전역 스타일 */
 #app {
   width: 100%;
-  /* [수정] 동적 뷰포트 높이 사용 */
-  min-height: 100dvh;
-  min-width: 320px;
+  min-height: 100vh;
   margin: 0;
   padding: 0;
   font-weight: normal;
@@ -18,12 +16,8 @@ body {
   padding: 0;
   background-color: var(--bg-base);
   color: var(--text-primary);
-  
-  /* [수정] 앱 쉘 구조를 위해 Body 스크롤은 막음 (내부 스크롤 사용) */
   overflow: hidden;
-  height: 100dvh; /* 모바일 브라우저 대응 */
-  width: 100%;
-  position: fixed; /* iOS 스크롤 튕김 방지 */
+  height: 100vh;
 }
 
 /* 링크 스타일 */
@@ -56,24 +50,4 @@ button {
   background: none;
   cursor: pointer;
   font-family: inherit;
-}
-
-/* 스크롤바 스타일링 */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--overlay-dark, rgba(0, 0, 0, 0.1));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--glass-border, rgba(255, 255, 255, 0.2));
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--glass-border-hover, rgba(255, 255, 255, 0.3));
 }

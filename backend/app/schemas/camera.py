@@ -12,6 +12,9 @@ class CameraOut(BaseModel):
     camera_name: str
     camera_type: CameraType
     location: Optional[str] = None
+    ip_address: Optional[str] = None
+    relay_address: Optional[str] = None
+    stream_port: Optional[str] = None
     stream_url: Optional[str] = None
     status: CameraStatus
     last_heartbeat: Optional[datetime] = None

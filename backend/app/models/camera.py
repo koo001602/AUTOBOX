@@ -27,6 +27,9 @@ class Camera(Base):
     camera_name = Column(String(100), nullable=False, comment="카메라 이름")
     camera_type = Column(Enum(CameraType), nullable=False, comment="카메라 타입")
     location = Column(String(100), nullable=True, comment="설치 위치")
+    ip_address = Column(String(50), nullable=True, comment="제조 설비(Jetson) IP 주소")
+    relay_address = Column(String(50), nullable=True, comment="중계 장치(Raspberry Pi) IP 주소")
+    stream_port = Column(String(10), nullable=True, comment="스트림 포트")
     stream_url = Column(String(255), nullable=True, comment="스트림 URL")
     status = Column(
         Enum(CameraStatus),

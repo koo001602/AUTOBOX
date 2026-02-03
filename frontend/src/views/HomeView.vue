@@ -50,7 +50,6 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
 
 <template>
   <div class="dashboard">
-    <!-- Header Bar -->
     <header class="dashboard-header">
       <div class="header-left">
         <div class="control-group">
@@ -98,16 +97,13 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
       </div>
     </header>
 
-    <!-- Stats Cards -->
     <StatsGrid :summary="todaySummary" />
 
-    <!-- Main Content -->
     <div class="main-content">
       <ChartPanel :options="chartOptions" :series="chartSeries" />
-      <RecentScanPanel :scan="latestScan" />
       <LogisticsTable 
         :data="filteredLogisticsData" 
-        :expanded="!latestScan"
+        :expanded="true"
         v-model:filterRegion="filterRegion"
         v-model:filterStatus="filterStatus"
       />
@@ -116,12 +112,20 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
 </template>
 
 <style scoped>
+/* =================================================================
+   기본 레이아웃 (Desktop - 100% 배율)
+   - 2열 그리드, 화면에 꽉 차게, 스크롤 없음
+   ================================================================= */
 .dashboard {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  padding: 16px 24px;
-  gap: 20px;
+  height: 100dvh;
+  min-height: 550px;
+  padding: 12px 20px 0 20px;
+  gap: 10px;
+  box-sizing: border-box;
+  overflow-y: auto; 
+  overflow-x: hidden;
 }
 
 /* Header */
@@ -130,14 +134,15 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  padding-bottom: 4px;
+  gap: 12px;
+  padding-bottom: 2px;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   background: var(--overlay-dark);
-  padding: 6px 16px;
+  padding: 8px 16px;
   border-radius: 12px;
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(8px);
@@ -148,7 +153,7 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
 .control-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .control-label {
@@ -231,15 +236,12 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
   transition: all 0.2s;
   box-shadow: 0 2px 8px var(--color-primary-glow);
   align-self: center;
+  white-space: nowrap;
 }
 
 .btn-send:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px var(--color-primary-glow);
-}
-
-.btn-send:active:not(:disabled) {
-  transform: translateY(0);
 }
 
 .btn-send:disabled {
@@ -258,7 +260,8 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
 
 .header-right {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .btn-icon {
@@ -281,26 +284,120 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
   background: var(--overlay-lighter);
 }
 
-/* Main Content Layout */
+/* Main Content Layout (Desktop Grid - 2열) */
 .main-content {
   display: grid;
-  grid-template-columns: 1fr 280px 1.4fr;
-  gap: 20px;
-  min-height: 400px;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 20px;
 }
 
-/* Responsive */
+/* =================================================================
+   반응형: 1열 레이아웃으로 변경 시 (확대 또는 작은 화면)
+   - 하단 네비게이션과 여백 확보
+   ================================================================= */
+
 @media (max-width: 1200px) {
+  .dashboard {
+    /* [핵심] 1열 레이아웃에서는 고정 높이 해제 + 스크롤 허용 */
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    /* [핵심] 하단 여백 추가 - 네비게이션 바와의 간격 */
+    padding-bottom: 30px;
+  }
+
   .main-content {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr;
-    gap: 16px;
+    gap: 12px;
+    flex: none;
+    height: auto;
+    min-height: auto;
+    /* 추가 하단 여백 */
+    padding-bottom: 0;
+    margin-bottom: 20px;
+  }
+}
+
+/* 모바일 (Phone) */
+@media (max-width: 768px) {
+  .dashboard { 
+    padding: 12px 16px 25px 16px; 
+    gap: 14px;
+    height: auto;
+    overflow: visible;
+    min-height: auto;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .header-left { 
+    padding: 8px 12px;
+    gap: 12px;
+    overflow-x: auto;
+  }
+  
+  .header-right {
+    justify-content: flex-end;
+  }
+  
+  .control-label { 
+    display: none;
+  }
+  
+  .control-divider {
+    display: none;
+  }
+
+  /* ▼▼▼ [수정됨] 차트 패널 모바일 최적화 ▼▼▼ */
+  
+  /* 1. 차트 패널 자체의 높이 설정 */
+  .main-content > :first-child :deep(.panel) {
+    min-height: 350px !important; /* iPhone SE 등 작은 화면을 위해 높이를 350px로 조정 */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 2. 패널 바디: 상단 정렬로 변경 및 여백 제거 */
+  .main-content > :first-child :deep(.panel-body) {
+    /* [핵심 수정] 위쪽 여백 최소화 (기존 20px -> 10px) */
+    padding: 10px 0 0 0 !important;      
+    
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    
+    /* [핵심 수정] 수직 중앙 정렬(center) -> 상단 정렬(flex-start)로 변경하여 그래프 위쪽 공백 제거 */
+    justify-content: flex-start !important; 
+    
+    align-items: center !important;
+    height: 100% !important;
+  }
+
+  /* 3. 차트 캔버스 중앙 정렬 및 위치 보정 */
+  .main-content > :first-child :deep(.apexcharts-canvas) {
+    margin: 0 auto !important;
+    /* 필요한 경우 미세 위치 조정 */
+    transform: translateY(-5px); 
+  }
+}
+
+/* 소형 모바일 */
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 8px 10px 20px 10px;
+    gap: 10px;
   }
   
   .header-left {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 8px;
   }
   
   .control-group {
@@ -308,18 +405,14 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
     align-items: center;
     justify-content: space-between;
   }
-}
-
-@media (max-width: 768px) {
-  .dashboard { padding: 12px; gap: 12px; }
-  .main-content { 
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 12px;
+  
+  .control-label {
+    display: block;
   }
-  .header-left { padding: 12px; }
-  .control-label { font-size: 9px; }
-  .btn-send { width: 100%; justify-content: center; }
-  .control-divider { display: none; }
+  
+  .btn-send {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

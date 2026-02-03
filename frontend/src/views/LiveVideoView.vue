@@ -25,16 +25,14 @@
                 <div class="corner bottom-left"></div>
                 <div class="corner bottom-right"></div>
               </div>
-              <div class="video-placeholder">
-                <div class="placeholder-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                    <path d="m22 8-6 4 6 4V8Z" />
-                    <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
-                  </svg>
-                </div>
-                <span class="placeholder-text">Camera Feed Unavailable</span>
-                <span class="placeholder-sub">연결 대기 중...</span>
-              </div>
+              <!-- Live Camera Stream -->
+              <iframe 
+                class="video-stream"
+                :src="streamUrl"
+                frameborder="0"
+                allowfullscreen
+                allow="autoplay; encrypted-media"
+              ></iframe>
               <div class="video-overlay">
                 <div class="overlay-top">
                   <span class="record-indicator"><span class="record-dot"></span>REC</span>
@@ -169,6 +167,10 @@ const currentScan = ref(null)
 const scanHistory = ref([])
 const isLoading = ref(true)
 const isMockMode = getMockMode()
+
+// 카메라 스트림 URL
+const streamUrl = ref('http://100.76.180.25:8889/mystream/')
+
 let timeInterval = null
 
 const viewBox = ref({ x: 0, y: 0, width: 1000, height: 800 })
@@ -410,6 +412,18 @@ onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (simulatio
   justify-content: center; 
   border-top: 1px solid #333;
   border-bottom: 1px solid #333;
+}
+
+/* Video Stream (iframe) */
+.video-stream {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #000;
+  z-index: 1;
 }
 
 .video-body { display: flex; flex-direction: column; padding: 0; background: #1a1a2e; }

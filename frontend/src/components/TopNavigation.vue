@@ -1,16 +1,11 @@
 <script setup>
-import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useSystemStatus, useTheme, useAlerts } from '../composables'
+import { useSystemStatus, useTheme } from '../composables'
 import { getMockMode } from '../api'
 
 // Composables
 const { batteryLevel, isConnected } = useSystemStatus()
 const { theme, toggleTheme } = useTheme()
-const { alerts } = useAlerts()
-
-// 미해결 알림 수
-const alertCount = computed(() => alerts.value.length)
 
 // 목업 모드 여부
 const isMockMode = getMockMode()
@@ -40,13 +35,6 @@ const isMockMode = getMockMode()
         </div>
       </div>
 
-      <button class="status-btn" :class="{ 'has-alerts': alertCount > 0 }">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-        </svg>
-        <span v-if="alertCount > 0" class="alert-badge">{{ alertCount > 99 ? '99+' : alertCount }}</span>
-      </button>
 
       <button class="status-btn" @click="toggleTheme">
         <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -250,26 +238,7 @@ const isMockMode = getMockMode()
   color: var(--text-primary);
 }
 
-.status-btn.has-alerts {
-  color: var(--color-error);
-}
 
-.alert-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  background: var(--color-error);
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 700;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 /* =============================================
    하단 탭바 (Bottom Navigation)

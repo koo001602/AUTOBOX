@@ -6,9 +6,6 @@ import { getMockMode } from '../api'
 const { theme, toggleTheme } = useTheme()
 const isMockMode = getMockMode()
 
-// 설정 값들
-const notificationsEnabled = ref(true)
-const soundEnabled = ref(true)
 
 // 백엔드 설정 (Docker 환경: 현재 호스트 사용, 로컬 개발: localhost)
 const backendUrl = ref(window.location.origin || 'http://localhost')
@@ -42,8 +39,7 @@ const loadSettings = () => {
       raspberryPiTopic.value = settings.raspberryPiTopic || raspberryPiTopic.value
       mqttBroker.value = settings.mqttBroker || mqttBroker.value
       mqttPort.value = settings.mqttPort || mqttPort.value
-      notificationsEnabled.value = settings.notificationsEnabled ?? true
-      soundEnabled.value = settings.soundEnabled ?? true
+
     }
   } catch (e) {
     console.error('설정 불러오기 실패:', e)
@@ -60,8 +56,7 @@ const saveSettings = () => {
       raspberryPiTopic: raspberryPiTopic.value,
       mqttBroker: mqttBroker.value,
       mqttPort: mqttPort.value,
-      notificationsEnabled: notificationsEnabled.value,
-      soundEnabled: soundEnabled.value
+
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
     alert('설정이 저장되었습니다.')
@@ -346,58 +341,6 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- 알림 설정 -->
-      <section class="settings-section">
-        <h2 class="section-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-          </svg>
-          알림
-        </h2>
-        <div class="settings-card">
-          <div class="setting-item" @click="notificationsEnabled = !notificationsEnabled">
-            <div class="setting-info">
-              <div class="setting-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                </svg>
-              </div>
-              <div class="setting-text">
-                <span class="setting-label">푸시 알림</span>
-                <span class="setting-value">오류 및 경고 알림 받기</span>
-              </div>
-            </div>
-            <div class="setting-action">
-              <div class="toggle-switch" :class="{ active: notificationsEnabled }">
-                <div class="toggle-thumb"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="setting-item" @click="soundEnabled = !soundEnabled">
-            <div class="setting-info">
-              <div class="setting-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                </svg>
-              </div>
-              <div class="setting-text">
-                <span class="setting-label">알림 소리</span>
-                <span class="setting-value">알림 시 소리 재생</span>
-              </div>
-            </div>
-            <div class="setting-action">
-              <div class="toggle-switch" :class="{ active: soundEnabled }">
-                <div class="toggle-thumb"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <!-- 시스템 정보 -->
       <section class="settings-section">

@@ -125,7 +125,7 @@ services:
     container_name: autobox-frontend
     restart: unless-stopped
     ports:
-      - "80:80"                                   # HTTP 기본 포트
+      - "8081:80"                                  # 호스트 Nginx 리버스 프록시용
     depends_on:
       - backend                                   # 백엔드 시작 후 실행
     networks:

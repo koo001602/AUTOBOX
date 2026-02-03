@@ -1,6 +1,7 @@
 # api.py - FastAPI 서버로 운송장 정보 추출
 
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Header
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -27,6 +28,20 @@ ADAPTER_PATH = os.getenv("ADAPTER_PATH", "./model/qwen2_vl_finetuned_ver2")
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8000"))
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",") if os.getenv("ALLOWED_ORIGINS") != "*" else ["*"]
+API_KEY = os.getenv("API_KEY", "your-secret-api-key-here")
+
+# =====================
+# API 키 인증
+# =====================
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def verify_api_key(api_key: str = Depends(api_key_header)):
+    """API 키 검증"""
+    if api_key is None:
+        raise HTTPException(status_code=401, detail="API 키가 필요합니다. 헤더에 X-API-Key를 포함해주세요.")
+    if api_key != API_KEY:
+        raise HTTPException(status_code=403, detail="유효하지 않은 API 키입니다.")
+    return api_key
 
 # =====================
 # FastAPI 앱 생성
@@ -67,6 +82,28 @@ class PredictionResponse(BaseModel):
     message: Optional[str] = None
 
 # =====================
+# 디바이스 설정
+# =====================
+def get_device():
+    """최적의 디바이스 반환"""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+def get_dtype(device):
+    """디바이스에 맞는 최적의 dtype 반환"""
+    if device.type == "cuda":
+        return torch.float16
+    elif device.type == "mps":
+        # MPS는 float32가 더 안정적이고 빠름
+        return torch.float32
+    else:
+        return torch.float32
+
+# =====================
 # 모델 로드 (서버 시작시)
 # =====================
 @app.on_event("startup")
@@ -75,26 +112,59 @@ async def load_model():
     
     print("🤖 모델 로딩 중...")
     
+    device = get_device()
+    dtype = get_dtype(device)
+    
+    print(f"📍 Target Device: {device}")
+    print(f"📍 Data Type: {dtype}")
+    
     try:
-        base_model = Qwen2VLForConditionalGeneration.from_pretrained(
-            "Qwen/Qwen2-VL-2B-Instruct",
-            torch_dtype=torch.float16,
-            device_map="auto"
-        )
+        # device_map을 명시적으로 설정
+        if device.type == "mps":
+            # MPS: 명시적으로 MPS 디바이스 사용
+            base_model = Qwen2VLForConditionalGeneration.from_pretrained(
+                "Qwen/Qwen2-VL-2B-Instruct",
+                torch_dtype=dtype,
+                device_map={"": device}
+            )
+        elif device.type == "cuda":
+            base_model = Qwen2VLForConditionalGeneration.from_pretrained(
+                "Qwen/Qwen2-VL-2B-Instruct",
+                torch_dtype=dtype,
+                device_map="auto"
+            )
+        else:
+            base_model = Qwen2VLForConditionalGeneration.from_pretrained(
+                "Qwen/Qwen2-VL-2B-Instruct",
+                torch_dtype=dtype
+            )
         
         model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
         model = model.merge_and_unload()
+        
+        # MPS로 명시적 이동 (필요한 경우)
+        if device.type == "mps":
+            model = model.to(device)
+        
         model.eval()
+        
+        # torch.compile 사용 (PyTorch 2.0+, 속도 향상)
+        try:
+            if hasattr(torch, 'compile') and device.type in ["cuda", "mps"]:
+                model = torch.compile(model, mode="reduce-overhead")
+                print("⚡ torch.compile 적용됨 (속도 향상)")
+        except Exception as e:
+            print(f"⚠️ torch.compile 스킵: {e}")
         
         processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct")
         
         print("✅ 모델 로딩 완료!")
         
-        # 디바이스 정보 출력 (Mac/Windows 호환)
-        if torch.cuda.is_available():
-            print(f"📍 Device: CUDA GPU - {torch.cuda.get_device_name(0)}")
-        elif torch.backends.mps.is_available():
-            print(f"📍 Device: Apple Silicon (MPS)")
+        # 디바이스 정보 출력
+        if device.type == "cuda":
+            print(f"� Device: CUDA GPU - {torch.cuda.get_device_name(0)}")
+        elif device.type == "mps":
+            print(f"� Device: Apple Silicon (MPS) - GPU 가속 활성화!")
         else:
             print(f"📍 Device: CPU")
             
@@ -134,8 +204,13 @@ def extract_info(image: Image.Image) -> str:
         return_tensors="pt",
     ).to(model.device)
     
-    with torch.no_grad():
-        generated_ids = model.generate(**inputs, max_new_tokens=512)
+    # 최적화된 추론 (inference_mode > no_grad)
+    with torch.inference_mode():
+        generated_ids = model.generate(
+            **inputs, 
+            max_new_tokens=512,
+            do_sample=False,  # 결정적 출력 (더 빠름)
+        )
     
     generated_ids_trimmed = [
         out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -162,7 +237,7 @@ async def root():
     }
 
 @app.post("/predict/path", response_model=PredictionResponse)
-async def predict_from_path(request: ImagePathRequest):
+async def predict_from_path(request: ImagePathRequest, api_key: str = Depends(verify_api_key)):
     """파일 경로로 이미지 추론"""
     
     if model is None or processor is None:
@@ -191,7 +266,7 @@ async def predict_from_path(request: ImagePathRequest):
         raise HTTPException(status_code=500, detail=f"추론 중 오류 발생: {str(e)}")
 
 @app.post("/predict/base64", response_model=PredictionResponse)
-async def predict_from_base64(request: ImageBase64Request):
+async def predict_from_base64(request: ImageBase64Request, api_key: str = Depends(verify_api_key)):
     """Base64 인코딩된 이미지로 추론"""
     
     if model is None or processor is None:
@@ -215,7 +290,7 @@ async def predict_from_base64(request: ImageBase64Request):
         raise HTTPException(status_code=500, detail=f"추론 중 오류 발생: {str(e)}")
 
 @app.post("/predict/upload", response_model=PredictionResponse)
-async def predict_from_upload(file: UploadFile = File(...)):
+async def predict_from_upload(file: UploadFile = File(...), api_key: str = Depends(verify_api_key)):
     """업로드된 이미지 파일로 추론"""
     
     if model is None or processor is None:

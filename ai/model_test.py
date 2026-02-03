@@ -10,8 +10,9 @@ import os
 # =====================
 # 설정
 # =====================
-ADAPTER_PATH = "./model/qwen2_vl_finetuned"  # LoRA 어댑터 경로
-TEST_IMAGE = "./img/test.png"  # 테스트할 이미지 경로 (jpg, png 모두 가능)
+# ADAPTER_PATH = "./model/qwen2_vl_finetuned"  # LoRA 어댑터 경로
+ADAPTER_PATH = "./model/qwen2_vl_finetuned_ver2"
+TEST_IMAGE = "./img/테스트.png"  # 테스트할 이미지 경로 (jpg, png 모두 가능)
 
 # =====================
 # 모델 로드

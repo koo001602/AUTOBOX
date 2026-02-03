@@ -8,6 +8,7 @@ import base64
 from io import BytesIO
 from PIL import Image
 import os
+from dotenv import load_dotenv
 
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 from qwen_vl_utils import process_vision_info
@@ -15,9 +16,17 @@ from peft import PeftModel
 import torch
 
 # =====================
+# 환경 변수 로드
+# =====================
+load_dotenv()
+
+# =====================
 # 설정
 # =====================
-ADAPTER_PATH = "./model/qwen2_vl_finetuned"
+ADAPTER_PATH = os.getenv("ADAPTER_PATH", "./model/qwen2_vl_finetuned_ver2")
+HOST = os.getenv("HOST", "0.0.0.0")
+PORT = int(os.getenv("PORT", "8000"))
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",") if os.getenv("ALLOWED_ORIGINS") != "*" else ["*"]
 
 # =====================
 # FastAPI 앱 생성
@@ -28,10 +37,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS 설정 (필요한 경우)
+# CORS 설정 (외부 접근 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -240,4 +249,7 @@ async def predict_from_upload(file: UploadFile = File(...)):
 # =====================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print(f"🚀 서버 시작: http://{HOST}:{PORT}")
+    print(f"📝 API 문서: http://{HOST}:{PORT}/docs")
+    print(f"🔧 모델 경로: {ADAPTER_PATH}")
+    uvicorn.run(app, host=HOST, port=PORT)

@@ -34,8 +34,14 @@ model.eval()
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct")
 
 print("✅ 모델 로딩 완료!")
+
+# 디바이스 정보 출력 (Mac/Windows 호환)
 if torch.cuda.is_available():
-    print(f"📍 GPU: {torch.cuda.get_device_name(0)}")
+    print(f"📍 Device: CUDA GPU - {torch.cuda.get_device_name(0)}")
+elif torch.backends.mps.is_available():
+    print(f"📍 Device: Apple Silicon (MPS)")
+else:
+    print(f"📍 Device: CPU")
 
 # =====================
 # JSON 파싱 함수

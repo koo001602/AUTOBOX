@@ -10,8 +10,9 @@ import os
 # =====================
 # 설정
 # =====================
-ADAPTER_PATH = "./model/qwen2_vl_finetuned"  # LoRA 어댑터 경로
-TEST_IMAGE = "./img/test.png"  # 테스트할 이미지 경로 (jpg, png 모두 가능)
+# ADAPTER_PATH = "./model/qwen2_vl_finetuned"  # LoRA 어댑터 경로
+ADAPTER_PATH = "./model/qwen2_vl_finetuned_ver2"
+TEST_IMAGE = "./img/테스트.png"  # 테스트할 이미지 경로 (jpg, png 모두 가능)
 
 # =====================
 # 모델 로드
@@ -31,7 +32,14 @@ model.eval()
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct")
 
 print("✅ 모델 로딩 완료!")
-print(f"📍 GPU: {torch.cuda.get_device_name(0)}")
+
+# 디바이스 정보 출력 (Mac/Windows 호환)
+if torch.cuda.is_available():
+    print(f"📍 Device: CUDA GPU - {torch.cuda.get_device_name(0)}")
+elif torch.backends.mps.is_available():
+    print(f"📍 Device: Apple Silicon (MPS)")
+else:
+    print(f"📍 Device: CPU")
 
 # =====================
 # 추론 함수

@@ -25,7 +25,18 @@
                 <div class="corner bottom-left"></div>
                 <div class="corner bottom-right"></div>
               </div>
-              <div class="video-placeholder">
+              <!-- MediaMTX WebRTC 라이브 스트림 -->
+              <iframe 
+                v-if="isStreamConnected"
+                :src="streamUrl"
+                class="video-stream"
+                frameborder="0"
+                allowfullscreen
+                @load="onStreamLoad"
+                @error="onStreamError"
+              ></iframe>
+              <!-- 연결 실패 시 플레이스홀더 표시 -->
+              <div class="video-placeholder" v-else>
                 <div class="placeholder-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                     <path d="m22 8-6 4 6 4V8Z" />
@@ -33,7 +44,8 @@
                   </svg>
                 </div>
                 <span class="placeholder-text">Camera Feed Unavailable</span>
-                <span class="placeholder-sub">연결 대기 중...</span>
+                <span class="placeholder-sub">{{ streamError || '연결 대기 중...' }}</span>
+                <button class="btn-retry" @click="connectStream">재연결</button>
               </div>
               <div class="video-overlay">
                 <div class="overlay-top">
@@ -171,6 +183,28 @@ const isLoading = ref(true)
 const isMockMode = getMockMode()
 let timeInterval = null
 
+// 라이브 스트림 관련 상태
+const isStreamConnected = ref(false)
+const streamError = ref('')
+// MediaMTX WebRTC 스트림 URL (nginx /live/ 프록시 사용)
+const streamUrl = ref('/live/')
+
+const connectStream = () => {
+  streamError.value = ''
+  isStreamConnected.value = true
+}
+
+const onStreamLoad = () => {
+  streamError.value = ''
+  console.log('라이브 스트림 연결 성공')
+}
+
+const onStreamError = () => {
+  isStreamConnected.value = false
+  streamError.value = '스트림 연결에 실패했습니다'
+  console.error('라이브 스트림 연결 실패')
+}
+
 const viewBox = ref({ x: 0, y: 0, width: 1000, height: 800 })
 const zoom = ref(1)
 const isPanning = ref(false)
@@ -228,7 +262,7 @@ const handleComplete = async () => { if (!currentScan.value) return; try { const
 const updateHistoryItem = (data) => { const idx = scanHistory.value.findIndex(h => h.waybill_id === data.waybill_id); if (idx >= 0) scanHistory.value[idx] = { ...scanHistory.value[idx], ...data } }
 const loadHistory = async () => { try { const res = await fetchWaybills({ size: 10 }); if (res.data?.success || res.data?.data) scanHistory.value = res.data.data?.items || [] } catch (err) { console.error('이력 로드 실패:', err); scanHistory.value = [] } }
 
-onMounted(async () => { updateTime(); timeInterval = setInterval(updateTime, 1000); loadHistory(); await loadInitialData(); if (isMockMode) simulationInterval = setInterval(simulateVehicleMovement, 50); else startDataPolling() })
+onMounted(async () => { updateTime(); timeInterval = setInterval(updateTime, 1000); loadHistory(); await loadInitialData(); if (isMockMode) simulationInterval = setInterval(simulateVehicleMovement, 50); else startDataPolling(); connectStream() })
 onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (simulationInterval) clearInterval(simulationInterval); if (dataPollingInterval) clearInterval(dataPollingInterval) })
 </script>
 
@@ -487,4 +521,31 @@ onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (simulatio
 .placeholder-icon { opacity: 0.3; }
 .placeholder-text { font-size: 14px; font-weight: 600; }
 .placeholder-sub { font-size: 11px; opacity: 0.6; }
+
+/* 라이브 스트림 스타일 */
+.video-stream { 
+  width: 100%; 
+  height: 100%; 
+  position: absolute; 
+  inset: 0; 
+  object-fit: contain; 
+  background: #000; 
+  z-index: 1; 
+}
+.btn-retry { 
+  margin-top: 8px; 
+  padding: 8px 16px; 
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); 
+  border: none; 
+  border-radius: 6px; 
+  color: white; 
+  font-size: 12px; 
+  font-weight: 600; 
+  cursor: pointer; 
+  transition: all 0.2s; 
+}
+.btn-retry:hover { 
+  transform: translateY(-1px); 
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); 
+}
 </style>

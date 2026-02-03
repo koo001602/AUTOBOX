@@ -3,7 +3,6 @@ dist
 .git
 .gitignore
 *.md
-.env
-.env.*
 .vscode
 .idea
+.vite

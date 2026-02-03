@@ -1,9 +1,0 @@
-{
-  "apply_effect": true,
-  "effect_ratios": {
-    "blur": 50,
-    "mosaic": 50
-  },
-  "effect_strength": 5,
-  "random_strength": true
-}

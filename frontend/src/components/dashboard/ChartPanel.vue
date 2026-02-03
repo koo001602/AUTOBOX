@@ -30,8 +30,11 @@ defineProps({
         <span class="legend-item"><span class="legend-dot pending"></span>미완료</span>
       </div>
     </div>
+    
     <div class="panel-body chart-body">
-      <VueApexCharts type="bar" height="100%" :options="options" :series="series" />
+      <div class="chart-wrapper">
+        <VueApexCharts type="bar" height="100%" width="100%" :options="options" :series="series" />
+      </div>
     </div>
   </section>
 </template>
@@ -41,9 +44,11 @@ defineProps({
   background: var(--glass-panel);
   backdrop-filter: blur(var(--blur-amount));
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
+  /* 부모(HomeView)에서 높이를 제어할 수 있도록 flex 설정 */
+  flex: 1; 
   min-height: 0;
   min-width: 0;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
@@ -59,7 +64,7 @@ defineProps({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.02);
@@ -83,17 +88,44 @@ defineProps({
 
 .panel-body {
   flex: 1;
-  padding: 20px;
   min-height: 0;
-  overflow: hidden;
-  position: relative;
+  padding: 0;
+  /* position: relative; 제거 - 불필요한 레이어 생성 방지 */
+  display: flex;           /* Flexbox로 변경하여 내부 요소 꽉 채우기 */
+  flex-direction: column;
 }
 
 .chart-body {
+  /* 패딩을 최소화하여 차트 영역 확보 */
+  padding: 10px; 
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* 차트 래퍼: 무조건 부모 크기를 꽉 채우도록 설정 */
+.chart-wrapper {
+  flex: 1;
+  width: 100%;
+  height: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 12px;
+  align-items: flex-end; /* 차트가 바닥에 붙도록 설정 (필요시 center) */
+  overflow: hidden;
+}
+
+/* ApexCharts 강제 스타일링 */
+:deep(.vue-apexcharts) {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+:deep(.apexcharts-canvas) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .chart-legend {
@@ -118,11 +150,20 @@ defineProps({
 .legend-dot.completed { background: var(--color-success); }
 .legend-dot.pending { background: rgba(255, 255, 255, 0.2); }
 
-@media (max-width: 1200px) {
-  .chart-panel { grid-column: 1; grid-row: 1; }
-}
+/* 반응형 처리:
+   HomeView.vue에서 이미 레이아웃을 제어하고 있으므로,
+   여기서는 내부적인 미세 조정만 수행합니다.
+*/
 
 @media (max-width: 768px) {
-  .chart-panel { grid-column: 1; }
+  .chart-body {
+    /* 모바일에서는 패딩을 더 줄여서 공간 확보 */
+    padding: 0 5px 5px 5px;
+  }
+  
+  /* 범례 폰트 사이즈 조정 */
+  .legend-item {
+    font-size: 11px;
+  }
 }
 </style>

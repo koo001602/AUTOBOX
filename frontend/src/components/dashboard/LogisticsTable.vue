@@ -20,7 +20,7 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   <section class="panel table-panel" :class="{ 'table-panel-expanded': expanded }">
     <div class="panel-header">
       <h2 class="panel-title">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 7V5a2 2 0 0 1 2-2h2" />
           <path d="M17 3h2a2 2 0 0 1 2 2v2" />
           <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
@@ -97,12 +97,12 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   background: var(--glass-panel);
   backdrop-filter: blur(var(--blur-amount));
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   transition: border-color 0.3s;
   overflow: hidden;
 }
@@ -115,7 +115,7 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--glass-border);
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.02);
@@ -139,7 +139,7 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
 
 .panel-body {
   flex: 1;
-  padding: 20px;
+  padding: 16px;
   min-height: 0;
   overflow: hidden;
   position: relative;
@@ -163,10 +163,11 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   gap: 8px;
 }
 
+/* 테마 대응 - CSS 변수 사용 */
 .filter-select {
-  padding: 4px 10px;
+  padding: 6px 12px;
   min-height: 32px;
-  background: var(--overlay-dark);
+  background-color: var(--overlay-dark);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   color: var(--text-primary);
@@ -174,10 +175,18 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
 .filter-select:hover {
-  border-color: var(--glass-border-hover);
+  border-color: var(--color-primary);
+  background-color: var(--overlay-lighter);
 }
 
 .filter-select:focus {
@@ -186,15 +195,18 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   box-shadow: 0 0 0 2px var(--color-primary-glow);
 }
 
+/* 옵션 배경색 테마 대응 */
 .filter-select option {
-  background: var(--bg-surface);
+  background-color: var(--bg-base);
   color: var(--text-primary);
+  padding: 10px 12px;
 }
 
 /* Table Styling */
 .table-body {
   padding: 0;
-  min-height: 300px;
+  min-height: 0;
+  flex: 1;
 }
 
 .table-wrapper {
@@ -278,10 +290,12 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
 .status-ready { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
 .status-error { background: rgba(239, 68, 68, 0.1); color: var(--color-error); border: 1px solid rgba(239, 68, 68, 0.2); }
 
+/* 빈 상태 셀 높이 유동적 조정 */
 .empty-state-cell {
   padding: 0 !important;
   border: none !important;
-  height: 250px;
+  height: 100%; 
+  min-height: 200px;
   width: 100%;
 }
 
@@ -290,7 +304,7 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 40px 24px;
   text-align: center;
   height: 100%;
 }
@@ -310,11 +324,11 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-6px); }
 }
 
 .empty-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 8px 0;
@@ -335,12 +349,53 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   font-size: 12px;
 }
 
+/* 태블릿 및 작은 데스크톱 (기존 코드 유지) */
 @media (max-width: 1200px) {
-  .table-panel { grid-column: 1 / -1; grid-row: 2; }
-  .table-panel-expanded { grid-column: 1 / -1; grid-row: 2; }
+  .table-panel { 
+    grid-column: 1 / -1; 
+    grid-row: 2; 
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .table-panel-expanded { 
+    grid-column: 1 / -1; 
+    grid-row: 2; 
+  }
+
+  /* 1200px 이하에서는 600px로 고정되어 있음 (문제의 원인) */
+  .table-body {
+    height: 600px;
+    min-height: 600px;
+  }
+  
+  .empty-state-cell {
+    height: 100%;
+  }
+  
+  .empty-state {
+    height: 100%;
+    min-height: 500px;
+  }
 }
 
+/* 모바일 (Phone) - [수정됨] */
 @media (max-width: 768px) {
   .table-panel, .table-panel-expanded { grid-column: 1; }
+  .panel-header { padding: 12px 14px; }
+  .panel-body { padding: 14px; }
+
+  /* [수정] 위 1200px 미디어 쿼리에서 강제한 600px 높이를 덮어씌움 */
+  .table-body {
+    height: 350px !important;    /* 모바일에 맞는 적당한 높이로 변경 (350px) */
+    min-height: 350px !important;
+  }
+
+  /* [수정] 빈 상태일 때의 높이도 축소 */
+  .empty-state {
+    min-height: auto !important;
+    height: 100% !important;
+    padding: 20px !important;
+  }
 }
 </style>

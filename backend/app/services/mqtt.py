@@ -230,7 +230,7 @@ class MQTTService:
             if isinstance(payload, dict):
                 payload = json.dumps(payload)
             
-            full_topic = f"{settings.MQTT_TOPIC_PREFIX}/{topic}"
+            full_topic = f"server_msg/{topic}"
             result = self.client.publish(full_topic, payload, qos=qos, retain=retain)
             
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
@@ -486,6 +486,32 @@ def handle_alert_notification(message: dict):
         logger.error(f"Error creating alert: {e}")
 
 
+def handle_box_image(message: dict):
+    """Handle box image data from Raspberry Pi."""
+    logger.info(f"Box image data received: {message}")
+    
+    try:
+        data = message.get("data", {})
+        if not data:
+            return
+        
+        # 이미지 데이터 처리 로직
+        # 예: 이미지 저장, AI 분석 요청 등
+        image_data = data.get("image")
+        box_id = data.get("box_id")
+        timestamp = data.get("timestamp")
+        
+        logger.info(f"Box image received - ID: {box_id}, timestamp: {timestamp}")
+        
+        # TODO: 필요시 추가 처리 로직 구현
+        # - 이미지 저장
+        # - AI 서버로 분석 요청
+        # - 결과 DB 저장
+        
+    except Exception as e:
+        logger.error(f"Error processing box image: {e}")
+
+
 # Register default handlers
 def register_default_handlers():
     """Register default message handlers."""
@@ -494,3 +520,4 @@ def register_default_handlers():
     mqtt_service.subscribe("vehicle/#", handle_vehicle_position)
     mqtt_service.subscribe("device/status", handle_device_status)
     mqtt_service.subscribe("alert/#", handle_alert_notification)
+    mqtt_service.subscribe("command/box_img", handle_box_image)

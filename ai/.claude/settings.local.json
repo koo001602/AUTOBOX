@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(source:*)",
-      "Bash(conda activate:*)",
-      "Bash(pip install:*)"
-    ]
-  }
-}

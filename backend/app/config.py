@@ -16,12 +16,12 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # CORS
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000, http://43.201.254.235"
     
     # MQTT Configuration
     MQTT_BROKER_HOST: str = "localhost"
     MQTT_BROKER_PORT: int = 1883
-    MQTT_TOPIC_PREFIX: str = "autobox"
+    MQTT_TOPIC_PREFIX: str = "factory_msg"
     MQTT_CLIENT_ID: str = "autobox-backend"
     MQTT_USERNAME: str = ""
     MQTT_PASSWORD: str = ""

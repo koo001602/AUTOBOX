@@ -27,9 +27,9 @@ export const FILTER_OPTIONS = {
     { value: '전체', label: '지역: 전체' },
     { value: '서울', label: '서울' },
     { value: '부산', label: '부산' },
-    { value: '대구', label: '대구' },
     { value: '광주', label: '광주' },
-    { value: '대전', label: '대전' }
+    { value: '대전', label: '대전' },
+    { value: '대구', label: '대구' }
   ],
   statuses: [
     { value: '전체', label: '상태: 전체' },

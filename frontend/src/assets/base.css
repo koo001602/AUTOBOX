@@ -9,36 +9,44 @@
   /* ============================================
      Premium Glassmorphism Palette
      ============================================ */
-     
+
   /* Primary Colors (Neon/Electric) */
-  --color-primary: #6366f1; /* Indigo */
+  --color-primary: #6366f1;
+  /* Indigo */
   --color-primary-hover: #4f46e5;
   --color-primary-glow: rgba(99, 102, 241, 0.5);
-  
-  --color-secondary: #06b6d4; /* Cyan */
+
+  --color-secondary: #06b6d4;
+  /* Cyan */
   --color-secondary-glow: rgba(6, 182, 212, 0.5);
 
-  --color-accent: #f472b6; /* Pink */
+  --color-accent: #f472b6;
+  /* Pink */
   --color-accent-glow: rgba(244, 114, 182, 0.5);
-  
+
   /* Status Colors (Neon) */
-  --color-success: #10b981; /* Emerald */
+  --color-success: #10b981;
+  /* Emerald */
   --color-success-glow: rgba(16, 185, 129, 0.4);
-  
-  --color-warning: #f59e0b; /* Amber */
+
+  --color-warning: #f59e0b;
+  /* Amber */
   --color-warning-glow: rgba(245, 158, 11, 0.4);
-  
-  --color-error: #ef4444; /* Red */
+
+  --color-error: #ef4444;
+  /* Red */
   --color-error-glow: rgba(239, 68, 68, 0.4);
-  
-  --color-info: #3b82f6; /* Blue */
+
+  --color-info: #3b82f6;
+  /* Blue */
   --color-info-glow: rgba(59, 130, 246, 0.4);
-  
-  /* Chart Colors */
+
   --chart-primary: #6366f1;
   --chart-success: #10b981;
   --chart-warning: #f59e0b;
   --chart-danger: #ef4444;
+  --chart-pending-color: #475569;
+  /* 다크모드 미완료 차트 색상 */
 }
 
 /* ============================================
@@ -47,7 +55,8 @@
 :root,
 [data-theme="dark"] {
   /* Backgrounds - Deep Space */
-  --bg-base: #0f172a; /* Fallback */
+  --bg-base: #0f172a;
+  /* Fallback */
   --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
 
   /* Glass Surfaces */
@@ -68,6 +77,12 @@
 
   /* Video Panel */
   --video-panel-bg: rgba(15, 23, 42, 0.6);
+  --video-container-bg: #1a1a2e;
+  --video-feed-bg: #000000;
+  --video-feed-border: #333333;
+  --map-container-bg: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+  --map-floor-color: 0x2a2a3d;
+  --map-wall-color: 0x505060;
 
   /* Text */
   --text-primary: #f8fafc;
@@ -109,6 +124,12 @@
 
   /* Video Panel */
   --video-panel-bg: rgba(241, 245, 249, 0.8);
+  --video-container-bg: #e2e8f0;
+  --video-feed-bg: #f1f5f9;
+  --video-feed-border: #cbd5e1;
+  --map-container-bg: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 100%);
+  --map-floor-color: 0xe5e8eb;
+  --map-wall-color: 0x64748b;
 
   /* Text */
   --text-primary: #1e293b;
@@ -121,6 +142,10 @@
   --shadow-neon: 0 0 10px rgba(99, 102, 241, 0.2);
 
   --blur-amount: 10px;
+
+  /* Chart Colors - Light Mode */
+  --chart-pending-color: #64748b;
+  /* 라이트모드 미완료 차트 색상 (더 진한 회색) */
 }
 
 /* ============================================
@@ -146,25 +171,25 @@ html {
   --font-size-h1: 1.75rem;
   --font-size-h2: 1.5rem;
   --font-size-h3: 1.25rem;
-  
+
   /* 본문 폰트 */
   --font-size-lg: 1rem;
   --font-size-base: 0.9375rem;
   --font-size-sm: 0.8125rem;
   --font-size-xs: 0.75rem;
-  
+
   /* 특수 폰트 (데이터 표시용) */
   --font-size-data-xl: 2.5rem;
   --font-size-data-lg: 1.5rem;
   --font-size-data-base: 1rem;
-  
+
   /* 레이블 폰트 */
   --font-size-label: 0.75rem;
-  
+
   /* 폰트 패밀리 - Pretendard */
   --font-family-base: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
-  
+
   /* 터치 최적화 */
   --touch-target-min: 44px;
   --spacing-xs: 6px;
@@ -238,9 +263,17 @@ samp {
    Typography
    ============================================ */
 
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-muted { color: var(--text-muted); }
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
 
 /* ============================================
    Utility Classes
@@ -270,8 +303,15 @@ samp {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* ============================================
@@ -423,12 +463,10 @@ samp {
   left: -50%;
   width: 200%;
   height: 100%;
-  background: linear-gradient(
-    to right,
-    transparent,
-    var(--glass-shine),
-    transparent
-  );
+  background: linear-gradient(to right,
+      transparent,
+      var(--glass-shine),
+      transparent);
   transform: rotate(45deg) translate(-100%, 0);
   transition: transform 0.6s;
   pointer-events: none;
@@ -491,4 +529,3 @@ samp {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # CORS
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000, http://43.201.254.235"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000, http://43.201.254.235 , https://autoboxx.duckdns.org"
     
     # MQTT Configuration
     MQTT_BROKER_HOST: str = "localhost"

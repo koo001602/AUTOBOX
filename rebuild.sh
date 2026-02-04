@@ -97,8 +97,8 @@ case "${1:-all}" in
         show_status
         ;;
     all|a)
-        rebuild_frontend
         rebuild_backend
+        rebuild_frontend
         cleanup_images
         show_status
         ;;

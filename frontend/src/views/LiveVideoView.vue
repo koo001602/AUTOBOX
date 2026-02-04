@@ -186,8 +186,8 @@ let timeInterval = null
 // 라이브 스트림 관련 상태
 const isStreamConnected = ref(false)
 const streamError = ref('')
-// MediaMTX WebRTC 스트림 URL (nginx /live/ 프록시 사용)
-const streamUrl = ref('/live/cam1/')
+// MediaMTX WebRTC 스트림 URL (nginx /stream/ 프록시 사용)
+const streamUrl = ref('/stream/cam1/')
 
 const connectStream = () => {
   streamError.value = ''

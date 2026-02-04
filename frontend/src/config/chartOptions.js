@@ -22,7 +22,7 @@ const getThemeColors = () => {
     background: 'transparent',
     completed: '#10b981',
     totalCompleted: '#10b981',
-    pending: isDark ? '#475569' : '#94a3b8',
+    pending: isDark ? '#475569' : '#64748b',  // 라이트 모드에서 더 진한 회색으로 변경
     region: '#3b82f6'
   }
 }

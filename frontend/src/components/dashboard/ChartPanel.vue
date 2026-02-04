@@ -148,7 +148,7 @@ defineProps({
 }
 
 .legend-dot.completed { background: var(--color-success); }
-.legend-dot.pending { background: rgba(255, 255, 255, 0.2); }
+.legend-dot.pending { background: var(--chart-pending-color, #64748b); }
 
 /* 반응형 처리:
    HomeView.vue에서 이미 레이아웃을 제어하고 있으므로,

@@ -289,6 +289,20 @@ export const sendVehicleCommand = (command, vehicleId = 'AGV-001', parameters = 
   })
 }
 
+// 21. 물류 데이터 초기화 (모든 운송장 삭제)
+export const resetAllWaybills = () => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        message: '목업 모드에서는 실제 데이터가 삭제되지 않습니다.',
+        deleted_count: 0
+      }
+    })
+  }
+  return apiClient.delete('/waybills/reset')
+}
+
 // 목업 모드 여부 내보내기 (UI에서 표시용)
 export const getMockMode = () => isMockMode
 

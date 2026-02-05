@@ -147,8 +147,8 @@ defineProps({
   border-radius: 2px;
 }
 
-.legend-dot.completed { background: var(--color-success); }
-.legend-dot.pending { background: var(--chart-pending-color, #64748b); }
+.legend-dot.completed { background: #10b981; } /* emerald-500 */
+.legend-dot.pending { background: #f59e0b; } /* amber-500 */
 
 /* 반응형 처리:
    HomeView.vue에서 이미 레이아웃을 제어하고 있으므로,

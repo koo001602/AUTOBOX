@@ -99,6 +99,8 @@ services:
       MQTT_ENABLED: ${MQTT_ENABLED:-true}
     ports:
       - "8080:8000"                               # 호스트:컨테이너 포트 매핑
+    volumes:
+      - ./data:/app/data                          # 데이터 저장소 마운트
     depends_on:
       mosquitto:
         condition: service_healthy                # MQTT 브로커 정상 상태 후 시작

@@ -60,18 +60,34 @@ class MQTTService:
                 f"Connecting to MQTT broker at "
                 f"{settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT} ({tls_status})"
             )
-            self.client.connect(
-                settings.MQTT_BROKER_HOST,
-                settings.MQTT_BROKER_PORT,
-                keepalive=60
-            )
+            
+            # Retry logic for connection
+            import time
+            max_retries = 5
+            retry_delay = 5
+            
+            for attempt in range(max_retries):
+                try:
+                    self.client.connect(
+                        settings.MQTT_BROKER_HOST,
+                        settings.MQTT_BROKER_PORT,
+                        keepalive=60
+                    )
+                    logger.info("Successfully initiated connection to MQTT broker")
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Connection attempt {attempt + 1} failed: {e}. Retrying in {retry_delay}s...")
+                        time.sleep(retry_delay)
+                    else:
+                        raise e
             
             # Start the loop in a background thread
             self.client.loop_start()
             return True
             
         except Exception as e:
-            logger.error(f"Failed to connect to MQTT broker: {e}")
+            logger.error(f"Failed to connect to MQTT broker after multiple attempts: {e}")
             return False
     
     def _configure_tls(self):
@@ -487,27 +503,53 @@ def handle_alert_notification(message: dict):
 
 
 def handle_box_image(message: dict):
-    """Handle box image data from Raspberry Pi."""
-    logger.info(f"Box image data received: {message}")
+    """Handle box image data from Raspberry Pi.
+    
+    Expected message format from Raspberry Pi:
+    Topic: factory_msg/command/box_img
+    Payload: {"dest": "base64_encoded_image_data"}
+    """
+    logger.info(f"Box image data received from topic: {message.get('topic')}")
     
     try:
         data = message.get("data", {})
         if not data:
+            logger.warning("Empty data received in box_img message")
             return
         
-        # 이미지 데이터 처리 로직
-        # 예: 이미지 저장, AI 분석 요청 등
-        image_data = data.get("image")
-        box_id = data.get("box_id")
-        timestamp = data.get("timestamp")
+        # 라즈베리 파이에서 보내는 형식: {"dest": base64_image}
+        image_base64 = data.get("dest")
         
-        logger.info(f"Box image received - ID: {box_id}, timestamp: {timestamp}")
+        if not image_base64:
+            logger.warning("No 'dest' key found in box_img message")
+            # 데이터가 있어도 dest가 없으면 저장하지 않도록 리턴할지, 아니면 그래도 저장할지 결정해야 함
+            # 요청사항은 "이런 데이터를 받게 된다면 ... 저장해줘" 이므로 전체 데이터를 저장하는 것이 좋음.
+            # 하지만 dest가 없는 경우도 저장할 가치가 있을 수 있음.
+            # 일단 dest 체크는 로그만 남기고 저장은 진행해보자.
         
-        # TODO: 필요시 추가 처리 로직 구현
-        # - 이미지 저장
-        # - AI 서버로 분석 요청
-        # - 결과 DB 저장
+        logger.info(f"Box image received - base64 length: {len(image_base64) if image_base64 else 0} characters")
         
+        # 데이터 저장 로직
+        import os
+        
+        # 저장 디렉토리 설정 (Docker Volume: /app/data -> Host: ./backend/data)
+        save_dir = "./data"
+        
+        # 디렉토리가 없으면 생성
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+            logger.info(f"Created directory: {save_dir}")
+            
+        # 파일명 생성
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        filename = f"{save_dir}/box_img_{timestamp}.json"
+        
+        # JSON 파일 저장
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+            
+        logger.info(f"Saved box image data to {filename}")
+
     except Exception as e:
         logger.error(f"Error processing box image: {e}")
 

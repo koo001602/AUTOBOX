@@ -303,6 +303,40 @@ export const resetAllWaybills = () => {
   return apiClient.delete('/waybills/reset')
 }
 
+// 22. OCR 결과 조회
+export const fetchOcrResults = (limit = 20) => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          items: [],
+          total: 0
+        }
+      }
+    })
+  }
+  return apiClient.get('/ocr/results', { params: { limit } })
+}
+
+// 23. OCR 서비스 상태 조회
+export const fetchOcrStatus = () => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        data: {
+          enabled: false,
+          watch_directory: './data',
+          api_url: '',
+          results_count: 0
+        }
+      }
+    })
+  }
+  return apiClient.get('/ocr/status')
+}
+
 // 목업 모드 여부 내보내기 (UI에서 표시용)
 export const getMockMode = () => isMockMode
 

@@ -16,7 +16,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import httpx
-from watchdog.observers import Observer
+# Use PollingObserver for reliable detection in Docker volumes
+from watchdog.observers.polling import PollingObserver as Observer
 from watchdog.events import FileSystemEventHandler, FileCreatedEvent
 
 from app.config import get_settings
@@ -63,48 +64,7 @@ def parse_region_code(region_code: Optional[str]) -> str:
     # 매핑에 없으면 원본 지역명 반환 (숫자 제거된 것)
     return region_name if region_name else '-'
 
-# ... (OCRResult class and BoxImageHandler class remain same) ...
 
-class OCRService:
-    # ... (init and start methods remain same) ...
-    
-    # ... (skipping to process_file method forbrevity in tool call, will use precise targeting) ...
-    
-    def process_file(self, file_path: str):
-        # ... existing logic ...
-                            logger.info(f"OCR completed for {file_name}: tracking={result.tracking_number}, region={result.region_code}")
-                            
-                            # Save to Database
-                            db_id = self._save_to_database(result)
-                            if db_id:
-                                result.result_id = str(db_id)  # Use simpler DB ID
-                                logger.info(f"Saved to DB with ID: {db_id}")
-                                
-                                # [NEW] Auto-dispatch MQTT Signal to Raspberry Pi
-                                try:
-                                    from app.services.mqtt import mqtt_service
-                                    
-                                    # Determine signal
-                                    signal = REGION_SIGNAL_MAP.get(result.region_code, DEFAULT_SIGNAL)
-                                    
-                                    # Payload format: {"destination": "Signal"}
-                                    payload = {"destination": signal}
-                                    
-                                    # Topic: server_msg/dest (mqtt_service automatically adds prefix 'server_msg/')
-                                    mqtt_service.publish("dest", payload)
-                                    
-                                    logger.info(f"Auto-dispatched MQTT signal '{signal}' to topic 'server_msg/dest'")
-                                    
-                                except Exception as mqtt_err:
-                                    logger.error(f"Failed to auto-dispatch MQTT signal: {mqtt_err}")
-                                
-                                # ---------------------------------------------------------
-                                # [NEW] Auto-dispatch MQTT Signal to Raspberry Pi
-                                # ---------------------------------------------------------
-
-                            
-                        except json.JSONDecodeError as e:
-    # ... (rest of the file) ...
 
 
 class OCRResult:
@@ -339,6 +299,27 @@ class OCRService:
                             if db_id:
                                 result.result_id = str(db_id)  # Use simpler DB ID
                                 logger.info(f"Saved to DB with ID: {db_id}")
+
+                            # Auto-dispatch MQTT signal if region code is available
+                            try:
+                                from app.services.mqtt import mqtt_service
+                                
+                                # Determine signal
+                                signal = REGION_SIGNAL_MAP.get(result.region_code)
+                                
+                                if signal:
+                                    # Payload format: {"destination": "B"}
+                                    payload = json.dumps({"destination": signal})
+                                    
+                                    # Topic: server_msg/dest (mqtt_service automatically adds prefix 'server_msg/')
+                                    mqtt_service.publish("command/dest", payload, qos=1)
+                                    
+                                    logger.info(f"Auto-dispatched MQTT signal '{signal}' to topic 'server_msg/dest'")
+                                else:
+                                    logger.info(f"No signal mapped for region '{result.region_code}', skipping MQTT dispatch")
+                                
+                            except Exception as mqtt_err:
+                                logger.error(f"Failed to auto-dispatch MQTT signal: {mqtt_err}")
                             
                         except json.JSONDecodeError as e:
                             logger.warning(f"Failed to parse result JSON: {e}, using raw result")

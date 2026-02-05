@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     # Raspberry Pi REST API
     RASPBERRY_PI_URL: str = "http://localhost:5000"
     
+    # OCR Configuration
+    OCR_ENABLED: bool = True
+    OCR_API_URL: str = "https://5ed5a6c30827.ngrok-free.app/predict/base64"
+    OCR_WATCH_DIR: str = "./data"
+    
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS origins from comma-separated string."""

@@ -294,6 +294,13 @@ const chartOptions = computed(() => getDashboardBarChartOptions(chartMax.value))
   padding-bottom: 20px;
 }
 
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
 /* =================================================================
    반응형: 1열 레이아웃으로 변경 시 (확대 또는 작은 화면)
    - 하단 네비게이션과 여백 확보

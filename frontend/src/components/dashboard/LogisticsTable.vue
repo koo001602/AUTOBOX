@@ -55,7 +55,13 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
               <td class="cell-id">{{ item.waybillId }}</td>
               <td class="cell-waybill">{{ item.id }}</td>
               <td class="cell-region">
-                <span class="region-badge">{{ item.target }}</span>
+                <span class="region-badge" :class="{
+                  'region-seoul': item.target === '서울',
+                  'region-busan': item.target === '부산',
+                  'region-gwangju': item.target === '광주',
+                  'region-daejeon': item.target === '대전',
+                  'region-daegu': item.target === '대구'
+                }">{{ item.target }}</span>
               </td>
               <td class="cell-status">
                 <span class="status-badge" :class="{
@@ -277,6 +283,13 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   color: var(--color-primary);
 }
 
+/* 지역별 색상 (파이 차트와 동일) */
+.region-seoul { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #10b981; }
+.region-busan { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6; }
+.region-gwangju { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b; }
+.region-daejeon { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #ef4444; }
+.region-daegu { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.3); color: #8b5cf6; }
+
 .status-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -389,6 +402,51 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   .table-body {
     height: 350px !important;    /* 모바일에 맞는 적당한 높이로 변경 (350px) */
     min-height: 350px !important;
+  }
+
+  /* 테이블 셀 폰트 크기 및 가독성 개선 */
+  .data-table th {
+    padding: 10px 8px;
+    font-size: 10px;
+    background: var(--table-header-bg);
+  }
+
+  .data-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .table-row:nth-child(even) {
+    background: var(--overlay-light, rgba(0, 0, 0, 0.02));
+  }
+
+  .cell-id {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .cell-waybill {
+    font-size: 11px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .region-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .status-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .cell-time {
+    font-size: 11px;
+    font-weight: 500;
   }
 
   /* [수정] 빈 상태일 때의 높이도 축소 */

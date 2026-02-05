@@ -99,9 +99,16 @@ except Exception as e:
     exit()
 
 
+def on_server_connect(client, userdata, flags, reason_code, properties):
+    if reason_code == 0:
+        print("서버 MQTT 연결 성공")
+        client.subscribe("server_msg/#")
+    else:
+        print(f"서버 MQTT 연결 실패: {reason_code}")
+
+client_server.on_connect = on_server_connect
 client_server.on_message = on_server_message
 client_server.connect("43.201.254.235", 8883)
-client_server.subscribe("server_msg/#")
 
 
 

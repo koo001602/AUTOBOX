@@ -68,19 +68,6 @@ const formatProcessTime = (seconds) => {
       </div>
     </div>
 
-    <div class="stat-card" :class="{ 'has-error': summary.error > 0 }">
-      <div class="stat-icon error">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value error">{{ summary.error }}</span>
-        <span class="stat-label">오류</span>
-      </div>
-    </div>
   </div>
 </template>
 

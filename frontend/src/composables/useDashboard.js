@@ -18,18 +18,55 @@ export function useDashboard() {
   const maxDate = ref(getToday());
   const selectedDate = ref(getToday());
 
-  // 반응형 데이터
-  const chartSeries = ref([]);
-  const logisticsData = ref([]);
+  // 목 데이터 (테스트용 - dev:mock 모드에서만 사용)
+  const isMockMode = import.meta.env.MODE === 'mock';
+  const mockChartData = {
+    completed: [
+      { x: '전체', y: 45, fillColor: '#10b981' },
+      { x: '서울', y: 18, fillColor: '#3b82f6' },
+      { x: '부산', y: 12, fillColor: '#3b82f6' },
+      { x: '광주', y: 8, fillColor: '#3b82f6' },
+      { x: '대전', y: 4, fillColor: '#3b82f6' },
+      { x: '대구', y: 3, fillColor: '#3b82f6' }
+    ],
+    pending: [
+      { x: '전체', y: 22, fillColor: '#f59e0b' },
+      { x: '서울', y: 7, fillColor: '#f59e0b' },
+      { x: '부산', y: 5, fillColor: '#f59e0b' },
+      { x: '광주', y: 4, fillColor: '#f59e0b' },
+      { x: '대전', y: 3, fillColor: '#f59e0b' },
+      { x: '대구', y: 3, fillColor: '#f59e0b' }
+    ]
+  };
+
+  // 물류 목록 목 데이터
+  const mockLogisticsData = [
+    { id: '001', waybillId: 1, target: '서울', status: '완료', rawStatus: 'COMPLETED', dateTime: '2026-02-05T13:45:00', processTime: 12, confidenceScore: 98.5 },
+    { id: '002', waybillId: 2, target: '부산', status: '이동 중', rawStatus: 'MOVING', dateTime: '2026-02-05T14:10:00', processTime: null, confidenceScore: 97.2 },
+    { id: '003', waybillId: 3, target: '광주', status: '대기 중', rawStatus: 'READY', dateTime: '2026-02-05T14:15:00', processTime: null, confidenceScore: 99.1 }
+  ];
+
+  // 반응형 데이터 (mock 모드일 때만 초기 데이터 설정)
+  const chartSeries = ref(isMockMode ? [
+    { name: '완료 건수', data: mockChartData.completed },
+    { name: '남은 건수', data: mockChartData.pending }
+  ] : []);
+  const logisticsData = ref(isMockMode ? mockLogisticsData : []);
   const latestScan = ref(null);
-  const chartMax = ref(10);
+  const chartMax = ref(isMockMode ? 45 : 10);
   const isLoading = ref(false);
   const error = ref(null);
 
   // 추가 통계 데이터
   const dailyStats = ref(null);
   const alerts = ref([]);
-  const todaySummary = ref({
+  const todaySummary = ref(isMockMode ? {
+    total: 67,
+    completed: 45,
+    error: 0,
+    avgProcessTime: 8,
+    successRate: 67,
+  } : {
     total: 0,
     completed: 0,
     error: 0,

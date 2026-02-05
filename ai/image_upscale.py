@@ -5,6 +5,7 @@ import requests
 import time
 import shutil
 from pathlib import Path
+import numpy as np
 
 # 모델 다운로드 정보
 MODELS = {
@@ -129,7 +130,7 @@ def upscale_image(image_path, output_path=None, algorithm="fsrcnn", scale=2, use
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="빠른 AI 이미지 업스케일러 (OpenCV DNN)")
     
-    default_img = os.path.join("img", "테스트3.png")
+    default_img = os.path.join("img", "test12.jpg")
     
     parser.add_argument("image_path", nargs="?", default=default_img, help=f"입력 이미지 경로 (기본값: {default_img})")
     parser.add_argument("--output", "-o", help="출력 파일 경로")

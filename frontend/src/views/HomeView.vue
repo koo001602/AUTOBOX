@@ -30,16 +30,10 @@ const changeDate = (days) => {
   }
 }
 
+
 // 오늘 날짜로 이동
 const goToToday = () => {
   selectedDate.value = maxDate.value
-}
-
-// 어제 날짜로 이동
-const goToYesterday = () => {
-  const yesterday = new Date()
-  yesterday.setDate(yesterday.getDate() - 1)
-  selectedDate.value = yesterday.toISOString().split('T')[0]
 }
 
 // 오늘인지 확인
@@ -218,24 +212,74 @@ const handleDownload = () => {
         </div>
         <div class="quick-dates">
           <button class="btn-chip" :class="{ active: isToday }" @click="goToToday">오늘</button>
-          <button class="btn-chip" @click="goToYesterday">어제</button>
         </div>
       </div>
 
       <!-- 통계 그리드 (버튼 이동됨) -->
+      <!-- 통계 그리드 (버튼 이동됨) -->
       <StatsGrid :summary="todaySummary">
         <template #actions>
-          <button class="btn-action excel" @click="openDownloadModal" title="엑셀 다운로드">
-            <!-- 엑셀 아이콘 -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="8" y1="13" x2="16" y2="13"></line>
-              <line x1="8" y1="17" x2="16" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-          </button>
+          <!-- 엑셀 다운로드 (팝오버 래퍼) -->
+          <div class="download-menu-wrapper">
+            <button class="btn-action excel" @click="isDownloadModalOpen = !isDownloadModalOpen" title="엑셀 다운로드"
+              :class="{ 'active': isDownloadModalOpen }">
+              <!-- 엑셀 아이콘 -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="8" y1="13" x2="16" y2="13"></line>
+                <line x1="8" y1="17" x2="16" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </button>
+
+            <!-- 팝오버 메뉴 -->
+            <div v-if="isDownloadModalOpen" class="download-popover">
+              <div class="popover-header">
+                <h3>엑셀 다운로드</h3>
+                <button class="btn-close-sm" @click="closeDownloadModal">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div class="popover-body">
+                <div class="tab-group-sm">
+                  <button class="tab-chip" :class="{ active: downloadMode === 'range' }"
+                    @click="downloadMode = 'range'">기간 선택</button>
+                  <button class="tab-chip" :class="{ active: downloadMode === 'all' }"
+                    @click="downloadMode = 'all'">전체</button>
+                </div>
+
+                <div v-if="downloadMode === 'range'" class="range-inputs">
+                  <div class="picker-row">
+                    <span class="label">From</span>
+                    <input type="date" v-model="downloadRange.start" :max="downloadRange.end || maxDate">
+                  </div>
+                  <div class="picker-row">
+                    <span class="label">To</span>
+                    <input type="date" v-model="downloadRange.end" :min="downloadRange.start" :max="maxDate">
+                  </div>
+                </div>
+
+                <div v-else class="info-text">
+                  전체 데이터를 다운로드합니다.
+                </div>
+              </div>
+              <div class="popover-footer">
+                <button class="btn-primary-sm" @click="handleDownload">
+                  다운로드
+                </button>
+              </div>
+            </div>
+
+            <!-- 백드롭 (클릭 시 닫힘용, 투명) -->
+            <div v-if="isDownloadModalOpen" class="transparent-backdrop" @click="closeDownloadModal"></div>
+          </div>
+
           <button class="btn-action" @click="loadData" title="새로고침">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -257,58 +301,7 @@ const handleDownload = () => {
         v-model:filterStatus="filterStatus" />
     </div>
 
-    <!-- 엑셀 다운로드 모달 -->
-    <div v-if="isDownloadModalOpen" class="modal-overlay" @click.self="closeDownloadModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>엑셀 데이터 다운로드</h3>
-          <button class="btn-close" @click="closeDownloadModal">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="download-tabs">
-            <button class="tab-btn" :class="{ active: downloadMode === 'range' }" @click="downloadMode = 'range'">
-              기간 선택
-            </button>
-            <button class="tab-btn" :class="{ active: downloadMode === 'all' }" @click="downloadMode = 'all'">
-              전체 데이터
-            </button>
-          </div>
-
-          <div v-if="downloadMode === 'range'" class="range-picker">
-            <div class="date-input-group">
-              <label>시작일</label>
-              <input type="date" v-model="downloadRange.start" :max="downloadRange.end || maxDate">
-            </div>
-            <div class="date-input-group">
-              <label>종료일</label>
-              <input type="date" v-model="downloadRange.end" :min="downloadRange.start" :max="maxDate">
-            </div>
-          </div>
-
-          <div v-else class="all-info">
-            <p>데이터베이스에 저장된 모든 물류 이력을 다운로드합니다.<br>데이터 양에 따라 시간이 소요될 수 있습니다.</p>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" @click="closeDownloadModal">취소</button>
-          <button class="btn-primary" @click="handleDownload">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            다운로드
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- 기존 모달 제거됨 -->
 
     <!-- 토스트 알림 (좌측 하단) -->
     <Transition name="toast">
@@ -354,6 +347,14 @@ const handleDownload = () => {
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+}
+
+.dashboard button,
+.dashboard input,
+.dashboard select,
+.dashboard textarea {
+  font-family: inherit;
 }
 
 /* Header */
@@ -766,7 +767,7 @@ const handleDownload = () => {
 /* Toast Notification (Left Bottom) */
 .toast-notification {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(90px + env(safe-area-inset-bottom));
   left: 24px;
   display: flex;
   align-items: center;
@@ -871,5 +872,190 @@ const handleDownload = () => {
     margin: 0 auto !important;
     transform: translateY(-5px);
   }
+}
+
+/* =================================================================
+   Excel Download Popover
+   ================================================================= */
+.download-menu-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-action.excel.active {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.download-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 280px;
+  background: var(--glass-panel);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  overflow: hidden;
+  animation: popDown 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top right;
+}
+
+@keyframes popDown {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.popover-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.btn-close-sm {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.btn-close-sm:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.popover-body {
+  padding: 14px;
+}
+
+.tab-group-sm {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.tab-chip {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tab-chip.active {
+  background: var(--glass-panel);
+  color: var(--text-primary);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.range-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-row .label {
+  width: 30px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.picker-row input[type="date"] {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: var(--font-family-mono);
+}
+
+.picker-row input[type="date"]:focus {
+  border-color: var(--color-primary);
+}
+
+.info-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px 0;
+  line-height: 1.4;
+}
+
+.popover-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.btn-primary-sm {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary-sm:hover {
+  background: var(--color-primary-dark, #4f46e5);
+}
+
+.transparent-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  /* Popover 아래, 다른 요소 위 */
+  cursor: default;
 }
 </style>

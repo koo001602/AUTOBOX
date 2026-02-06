@@ -213,6 +213,30 @@ export const fetchVehiclePosition = () => {
   return apiClient.get("/vehicle/position");
 };
 
+// 16-1. RC 상태 조회 (실시간 로그 파일에서 읽기)
+export const fetchRcState = () => {
+  if (isMockMode) {
+    return mockDelay({
+      data: {
+        success: true,
+        connected: true,
+        data: {
+          device_id: "rc1",
+          speed: Math.random() * 2,
+          state: "IDLE",
+          x: Math.random() * 10,
+          y: Math.random() * 10,
+          theta: Math.random() * 360,
+          path: "",
+          remain_dist: Math.random() * 5,
+          remain_time: Math.floor(Math.random() * 30),
+        },
+      },
+    });
+  }
+  return apiClient.get("/vehicle/rc-state");
+};
+
 // 17. 맵 데이터 조회 (경로, 장애물, waypoints 등)
 export const fetchMapData = () => {
   if (isMockMode) {

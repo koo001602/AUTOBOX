@@ -1,7 +1,8 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { FILTER_OPTIONS } from '../../constants'
 
-defineProps({
+const props = defineProps({
   data: {
     type: Array,
     required: true
@@ -14,6 +15,45 @@ defineProps({
 
 const filterRegion = defineModel('filterRegion', { default: '전체' })
 const filterStatus = defineModel('filterStatus', { default: '전체' })
+
+// 정렬 상태 관리
+const sortKey = ref('createdAt')
+const sortOrder = ref('desc') // 'asc' or 'desc'
+
+// 정렬 함수
+const sortBy = (key) => {
+  if (sortKey.value === key) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortOrder.value = 'desc' // 새로운 키 선택 시 내림차순 기본
+  }
+}
+
+// 정렬된 데이터
+const sortedData = computed(() => {
+  // 원본 데이터 복사
+  const list = [...props.data]
+
+  if (!sortKey.value) return list
+
+  return list.sort((a, b) => {
+    let aVal = a[sortKey.value]
+    let bVal = b[sortKey.value]
+
+    // null/undefined 처리
+    if (aVal === null || aVal === undefined) aVal = ''
+    if (bVal === null || bVal === undefined) bVal = ''
+
+    if (aVal === bVal) return 0
+
+    let result = 0
+    if (aVal > bVal) result = 1
+    else result = -1
+
+    return sortOrder.value === 'asc' ? result : -result
+  })
+})
 </script>
 
 <template>
@@ -44,16 +84,34 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
         <table class="data-table">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>운송장 번호</th>
-              <th>지역</th>
-              <th>상태</th>
-              <th>인식 시간</th>
-              <th>완료 시간</th>
+              <th @click="sortBy('waybillId')" class="sortable">
+                ID
+                <span v-if="sortKey === 'waybillId'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th @click="sortBy('id')" class="sortable">
+                운송장 번호
+                <span v-if="sortKey === 'id'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th @click="sortBy('target')" class="sortable">
+                지역
+                <span v-if="sortKey === 'target'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th @click="sortBy('status')" class="sortable">
+                상태
+                <span v-if="sortKey === 'status'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th @click="sortBy('createdAt')" class="sortable">
+                인식 시간
+                <span v-if="sortKey === 'createdAt'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+              <th @click="sortBy('completedAt')" class="sortable">
+                완료 시간
+                <span v-if="sortKey === 'completedAt'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in data" :key="item.id" class="table-row">
+            <tr v-for="item in sortedData" :key="item.id" class="table-row">
               <td class="cell-id">{{ item.waybillId }}</td>
               <td class="cell-waybill">{{ item.id }}</td>
               <td class="cell-region">
@@ -264,6 +322,25 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
   text-transform: uppercase;
   letter-spacing: 0.05em;
   z-index: 10;
+  transition: color 0.2s;
+}
+
+/* 정렬 가능 헤더 스타일 */
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  /* 호버 시 약간 밝게 */
+}
+
+.data-table th.sortable span {
+  margin-left: 4px;
+  color: var(--color-primary);
+  font-size: 12px;
 }
 
 .data-table td {

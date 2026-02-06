@@ -92,7 +92,7 @@ services:
       # MQTT 설정
       MQTT_BROKER_HOST: ${MQTT_BROKER_HOST:-mosquitto}
       MQTT_BROKER_PORT: ${MQTT_BROKER_PORT:-1883}
-      MQTT_TOPIC_PREFIX: ${MQTT_TOPIC_PREFIX:-autobox}
+      MQTT_TOPIC_PREFIX: ${MQTT_TOPIC_PREFIX:-factory_msg}
       MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:-autobox-backend}
       MQTT_USERNAME: ${MQTT_USERNAME:-backend}
       MQTT_PASSWORD: ${MQTT_PASSWORD:-}
@@ -103,6 +103,7 @@ services:
       - "8080:8000" # 호스트:컨테이너 포트 매핑
     volumes:
       - ./data:/app/data # 데이터 저장소 마운트
+      - ./logs:/app/logs # RC 상태 로그 저장
     depends_on:
       mosquitto:
         condition: service_healthy # MQTT 브로커 정상 상태 후 시작

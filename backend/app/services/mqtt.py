@@ -561,9 +561,10 @@ def handle_rc_state(message: dict):
     Topic: factory_msg/state/rc
     Payload: JSON data containing RC state information
     
-    Saves received data to backend/logs folder as JSON files.
+    Saves received data to backend/logs/rc_state_latest.json (single file, overwritten).
+    This prevents storage from filling up with files created every 0.5 seconds.
     """
-    logger.info(f"RC state data received from topic: {message.get('topic')}")
+    logger.debug(f"RC state data received from topic: {message.get('topic')}")
     
     try:
         data = message.get("data", {})
@@ -571,7 +572,7 @@ def handle_rc_state(message: dict):
             logger.warning("Empty data received in state/rc message")
             return
         
-        logger.info(f"RC state received: {data}")
+        logger.debug(f"RC state received: {data}")
         
         # 데이터 저장 로직
         import os
@@ -584,9 +585,8 @@ def handle_rc_state(message: dict):
             os.makedirs(save_dir)
             logger.info(f"Created directory: {save_dir}")
             
-        # 파일명 생성 (타임스탬프 포함)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        filename = f"{save_dir}/rc_state_{timestamp}.json"
+        # 단일 파일로 저장 (덮어쓰기) - 저장소 최적화
+        filename = f"{save_dir}/rc_state_latest.json"
         
         # 전체 메시지 구조 저장 (topic, data, timestamp 포함)
         save_data = {
@@ -596,11 +596,9 @@ def handle_rc_state(message: dict):
             "saved_at": datetime.now().isoformat()
         }
         
-        # JSON 파일 저장
+        # JSON 파일 저장 (덮어쓰기)
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(save_data, f, ensure_ascii=False, indent=4)
-            
-        logger.info(f"Saved RC state data to {filename}")
 
     except Exception as e:
         logger.error(f"Error processing RC state: {e}")

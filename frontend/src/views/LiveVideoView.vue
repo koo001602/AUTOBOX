@@ -18,8 +18,9 @@
       </div>
     </div>
 
-    <!-- Fixed Right Sidebar -->
-    <aside class="monitoring-sidebar">
+    <!-- Resizable Right Sidebar -->
+    <aside class="monitoring-sidebar" :style="{ width: sidebarWidth + 'px' }">
+      <div class="resize-handle" @mousedown="startResize"></div>
       <div class="sidebar-header">
         <h2>Monitoring</h2>
         <span class="live-indicator">LIVE</span>
@@ -38,8 +39,10 @@
           </div>
           <div class="camera-container">
             <!-- MediaMTX WebRTC Live Stream -->
-            <iframe v-if="isStreamConnected" :src="streamUrl" class="video-stream" frameborder="0" allowfullscreen
-              @load="onStreamLoad" @error="onStreamError"></iframe>
+            <!-- Add pointer-events-none when resizing to prevent iframe from capturing mouse events -->
+            <iframe v-if="isStreamConnected" :src="streamUrl" class="video-stream"
+              :class="{ 'pointer-events-none': isResizing }" frameborder="0" allowfullscreen @load="onStreamLoad"
+              @error="onStreamError"></iframe>
 
             <!-- Connection Placeholder -->
             <div class="video-placeholder" v-else>
@@ -145,6 +148,24 @@
           </div>
         </div>
 
+        <!-- Dev Mode Debug Controls (npm run dev에서만 표시) -->
+        <div v-if="isDevMode" class="debug-panel">
+          <div class="debug-header">🔧 Debug Controls (Dev Only)</div>
+          <div class="debug-info">
+            <span>RC: ({{ vehicle.x.toFixed(2) }}, {{ vehicle.y.toFixed(2) }})</span>
+            <span>Offset: ({{ debugOffset.x.toFixed(1) }}, {{ debugOffset.y.toFixed(1) }})</span>
+          </div>
+          <div class="debug-buttons">
+            <button class="debug-btn" @click="debugOffset.y += 1">↑</button>
+            <div class="debug-row">
+              <button class="debug-btn" @click="debugOffset.x -= 1">←</button>
+              <button class="debug-btn reset" @click="debugOffset.x = 0; debugOffset.y = 0">⟲</button>
+              <button class="debug-btn" @click="debugOffset.x += 1">→</button>
+            </div>
+            <button class="debug-btn" @click="debugOffset.y -= 1">↓</button>
+          </div>
+        </div>
+
       </div>
     </aside>
   </div>
@@ -152,7 +173,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { startWaybillScan, startSorting, completeSorting, fetchWaybills, fetchVehiclePosition, fetchMapData, fetchSensorStatus, getMockMode } from '../api'
+import { startWaybillScan, startSorting, completeSorting, fetchWaybills, fetchVehiclePosition, fetchRcState, fetchMapData, fetchSensorStatus, getMockMode } from '../api'
 import { useTheme } from '../composables/useTheme'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -168,11 +189,29 @@ const MAP_CONFIG = {
   occupiedThresh: 0.65
 }
 
+// ========== 차량 설정 (여기서 모든 값을 조정하세요!) ==========
+const VEHICLE_CONFIG = {
+  // 시작 위치 보정 (미터)
+  offsetX: 10.6,
+  offsetY: 35.5,
+
+  // 회전 보정 (도, + = 시계방향)
+  rotation: 90,
+
+  // 이동 스케일 (1.0 = RC 1m당 맵 1m)
+  moveScale: 6,
+
+  // 차량 물리적 크기 (배율)
+  size: 1.0
+}
+// =============================================================
+
 // State
 const currentTime = ref('')
 const isScanning = ref(false)
 const isLoading = ref(true)
 const isMockMode = getMockMode()
+const isDevMode = import.meta.env.DEV  // npm run dev에서만 true
 
 // Stream
 const isStreamConnected = ref(false)
@@ -184,14 +223,20 @@ const streamUrl = ref('/stream/cam1/')
 
 // 3D Map
 const mapContainer3D = ref(null)
-let scene, camera, renderer, controls, vehicleMesh, mapMesh, floorMesh
+let scene, camera, renderer, controls, vehicleMesh, mapMesh, floorMesh, worldGroup, pathMesh
 let animationFrameId = null
 
 const vehicle = ref({ x: 0, y: 0, angle: 0 })
+const vehiclePath = ref([])  // 차량 경로 데이터
 const vehicleStatus = ref({ mode: 'IDLE', speed: 0, battery: 100, distanceToTarget: 0, eta: 0 })
 const isVehicleConnected = ref(false)
 const isVideoVisible = ref(true)
+const debugOffset = ref({ x: 0, y: 0 })  // 디버그용 수동 오프셋
 let timeInterval = null
+
+// Sidebar Resize State
+const sidebarWidth = ref(380)
+const isResizing = ref(false)
 
 // Functions
 const connectStream = () => {
@@ -215,27 +260,46 @@ const updateTime = () => {
 
 const loadVehiclePosition = async () => {
   try {
-    const res = await fetchVehiclePosition()
+    // 새로운 RC State API 사용 (MQTT 로그에서 읽기)
+    const res = await fetchRcState()
     if (res.data?.success && res.data?.data) {
       const data = res.data.data
-      vehicle.value = { x: data.x || 0, y: data.y || 0, angle: data.angle || 0 }
+      // RC 좌표는 미터 단위 - 3D 맵에서 그대로 사용
+      vehicle.value = {
+        x: data.x || 0,
+        y: data.y || 0,
+        angle: data.theta || 0  // theta를 angle로 매핑
+      }
       vehicleStatus.value = {
-        mode: data.mode || 'IDLE',
-        speed: parseFloat(data.speed) || 0,
-        battery: data.battery || 100,
-        distanceToTarget: data.distanceToTarget || 0,
-        eta: data.eta || 0
+        mode: data.state || 'IDLE',
+        speed: Math.round(Math.abs(data.speed || 0) * 3.6 * 100) / 100,  // m/s -> km/h
+        battery: 100,  // RC에서 배터리 정보 없음, 기본값 사용
+        distanceToTarget: Math.round((data.remain_dist || 0) * 100) / 100,
+        eta: Math.round(data.remain_time || 0)
       }
 
-      const isDefaultPosition = Math.abs(data.x - 450) < 1 && Math.abs(data.y - 350) < 1
-      const isIdleMode = data.mode === 'IDLE' || data.mode === '-' || !data.mode
-      isVehicleConnected.value = !(isIdleMode && isDefaultPosition)
+      // connected 필드로 연결 상태 판단
+      isVehicleConnected.value = res.data.connected || false
+
+      // 경로 데이터 파싱
+      if (data.path) {
+        try {
+          const parsedPath = typeof data.path === 'string' ? JSON.parse(data.path) : data.path
+          vehiclePath.value = parsedPath || []
+        } catch (e) {
+          vehiclePath.value = []
+        }
+      } else {
+        vehiclePath.value = []
+      }
     } else {
       isVehicleConnected.value = false
+      vehiclePath.value = []
     }
   } catch (err) {
-    console.error('Vehicle Pos Error:', err)
+    console.error('RC State Error:', err)
     isVehicleConnected.value = false
+    vehiclePath.value = []
   }
 }
 
@@ -247,12 +311,21 @@ const init3DMap = () => {
   const height = container.clientHeight
 
   scene = new THREE.Scene()
-  const sceneBgColor = isDark() ? 0x1e1e2e : 0xe2e8f0
+  // Adjust background color to be slightly darker/technical
+  const sceneBgColor = isDark() ? 0x1e1e2e : 0xdbeafe
   scene.background = new THREE.Color(sceneBgColor)
+
+  // World Group for all map elements
+  worldGroup = new THREE.Group()
+  // Rotate 90 degrees more to the right (Clockwise) relative to previous state (-PI/2)
+  // Previous: -Math.PI / 2
+  // New: -Math.PI
+  worldGroup.rotation.y = -Math.PI
+  scene.add(worldGroup)
 
   // Orthographic Camera for 2D Plan View
   const aspect = width / height
-  const frustumSize = 60 // 맵 크기에 맞춰 조정 (대략 60m 범위 커버)
+  const frustumSize = 100 // Increased from 60 to 100 for smaller initial zoom (zoomed out)
   camera = new THREE.OrthographicCamera(
     frustumSize * aspect / -2,
     frustumSize * aspect / 2,
@@ -335,13 +408,26 @@ const createSlamMap = () => {
       new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.9 })
     )
     floorMesh.rotation.x = -Math.PI / 2
+    // floorMesh.rotation.z = -Math.PI / 2 // Removed individual rotation
     floorMesh.position.set(floorCenterX, -0.01, -floorCenterY)
     floorMesh.receiveShadow = true
-    scene.add(floorMesh)
+    worldGroup.add(floorMesh) // Add to worldGroup
 
     if (controls) {
-      controls.target.set(floorCenterX, 0, -floorCenterY)
+      // Calculate world position for camera target
+      // The floor center is (floorCenterX, 0, -floorCenterY) in LOCAL worldGroup space.
+      // worldGroup rotation is -Math.PI (180 degrees around Y axis)
+      // After 180deg Y rotation: x' = -x, z' = -z
+
+      const targetLocal = new THREE.Vector3(floorCenterX, 0, -floorCenterY)
+      const targetWorld = targetLocal.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI)
+
+      controls.target.copy(targetWorld)
       controls.update()
+
+      // Position camera directly above the target for centered top-down view
+      camera.position.set(targetWorld.x, 100, targetWorld.z)
+      camera.lookAt(targetWorld)
     }
 
     // Walls
@@ -370,51 +456,120 @@ const createSlamMap = () => {
       dummy.updateMatrix()
       mapMesh.setMatrixAt(i, dummy.matrix)
     }
+
+    // mapMesh.rotation.y = -Math.PI / 2 // Removed individual rotation
+
     mapMesh.instanceMatrix.needsUpdate = true
-    scene.add(mapMesh)
+    worldGroup.add(mapMesh) // Add to worldGroup
   })
 }
 
 const createVehicle = () => {
   vehicleMesh = new THREE.Group()
+
+  // VEHICLE_CONFIG.size로 차량 크기 조정
+  const scale = VEHICLE_CONFIG.size
+
+  // 차량 본체 (1.8m x 0.9m x 2.7m - 실제 차량 크기와 유사)
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.3, 0.9),
+    new THREE.BoxGeometry(1.8 * scale, 0.9 * scale, 2.7 * scale),
     new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4, metalness: 0.4 })
   )
-  body.position.y = 0.25
+  body.position.y = 0.6 * scale
   body.castShadow = true
   vehicleMesh.add(body)
 
-  const wheelGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.1, 12)
+  // 바퀴
+  const wheelGeo = new THREE.CylinderGeometry(0.3 * scale, 0.3 * scale, 0.3 * scale, 12)
   const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 })
-  const wheelPos = [[-0.35, -0.3], [0.35, -0.3], [-0.35, 0.3], [0.35, 0.3]]
+  const wheelPos = [[-0.7, -1.0], [0.7, -1.0], [-0.7, 1.0], [0.7, 1.0]]
   wheelPos.forEach(([x, z]) => {
     const wheel = new THREE.Mesh(wheelGeo, wheelMat)
     wheel.rotation.z = Math.PI / 2
-    wheel.position.set(x, 0.1, z)
+    wheel.position.set(x * scale, 0.3 * scale, z * scale)
     vehicleMesh.add(wheel)
   })
 
+  // 전방 표시 (노란색 헤드라이트)
   const light = new THREE.Mesh(
-    new THREE.BoxGeometry(0.4, 0.05, 0.05),
+    new THREE.BoxGeometry(1.2 * scale, 0.15 * scale, 0.15 * scale),
     new THREE.MeshBasicMaterial({ color: 0xffff00 })
   )
-  light.position.set(0, 0.3, -0.45)
+  light.position.set(0, 0.8 * scale, -1.4 * scale)
   vehicleMesh.add(light)
 
-  scene.add(vehicleMesh)
+  worldGroup.add(vehicleMesh)
 }
 
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
   controls?.update()
-  if (vehicleMesh && isVehicleConnected.value) {
+  if (vehicleMesh) {
+    // 차량 항상 표시 (연결 상태와 무관하게 위치 확인용)
     vehicleMesh.visible = true
-    vehicleMesh.position.x = vehicle.value.x
-    vehicleMesh.position.z = -vehicle.value.y
-    vehicleMesh.rotation.y = vehicle.value.angle * (Math.PI / 180)
-  } else if (vehicleMesh) {
-    vehicleMesh.visible = false
+
+    // VEHICLE_CONFIG 사용 + 디버그 오프셋 적용
+    const { offsetX, offsetY, rotation, moveScale } = VEHICLE_CONFIG
+
+    // IDLE/READY_TO_LOAD 상태일 때는 기본 보정값 위치에 고정
+    const isIdle = vehicleStatus.value.mode === 'IDLE' || vehicleStatus.value.mode === 'READY_TO_LOAD'
+
+    let mapX, mapZ
+    if (isIdle) {
+      // IDLE 상태: 보정값 위치에 고정
+      mapX = offsetX + debugOffset.value.x
+      mapZ = -(offsetY + debugOffset.value.y)
+    } else {
+      // 이동 중: RC 좌표 반영
+      const rcX = vehicle.value.x + debugOffset.value.x
+      const rcY = vehicle.value.y + debugOffset.value.y
+      mapX = (rcX * moveScale) + offsetX
+      mapZ = -((rcY * moveScale) + offsetY)
+    }
+
+    vehicleMesh.position.set(mapX, 0.5, mapZ)
+    // RC theta 무시, VEHICLE_CONFIG.rotation만 사용
+    vehicleMesh.rotation.y = Math.PI + (rotation * Math.PI / 180)
+
+    // 연결 상태에 따라 색상 변경
+    const bodyMesh = vehicleMesh.children[0]
+    if (bodyMesh && bodyMesh.material) {
+      bodyMesh.material.color.setHex(isVehicleConnected.value ? 0x10b981 : 0x6b7280)
+    }
+
+    // 경로 라인 렌더링 (굵은 튜브로 표시)
+    if (vehiclePath.value && vehiclePath.value.length > 1) {
+      // 기존 경로 제거
+      if (pathMesh) {
+        worldGroup.remove(pathMesh)
+        pathMesh.geometry.dispose()
+        pathMesh.material.dispose()
+      }
+
+      // 경로 포인트를 3D 좌표로 변환
+      const points = vehiclePath.value.map(p => {
+        const px = (p.x * moveScale) + offsetX + debugOffset.value.x
+        const pz = -((p.y * moveScale) + offsetY + debugOffset.value.y)
+        return new THREE.Vector3(px, 0.3, pz)
+      })
+
+      // TubeGeometry로 굵은 경로 생성
+      const curve = new THREE.CatmullRomCurve3(points)
+      const geometry = new THREE.TubeGeometry(curve, points.length * 2, 0.3, 8, false)
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x3b82f6,  // 파란색 경로
+        transparent: true,
+        opacity: 0.8
+      })
+      pathMesh = new THREE.Mesh(geometry, material)
+      worldGroup.add(pathMesh)
+    } else if (pathMesh) {
+      // 경로가 없으면 제거
+      worldGroup.remove(pathMesh)
+      pathMesh.geometry.dispose()
+      pathMesh.material.dispose()
+      pathMesh = null
+    }
   }
   renderer?.render(scene, camera)
 }
@@ -438,26 +593,72 @@ const handleResize = () => {
 
 const zoomIn3D = () => {
   if (camera) {
-    const dir = new THREE.Vector3()
-    camera.getWorldDirection(dir)
-    camera.position.addScaledVector(dir, 5)
+    camera.zoom = Math.min(camera.zoom + 0.1, 5) // Max zoom limit
+    camera.updateProjectionMatrix()
+    renderer?.render(scene, camera)
   }
 }
 
 const zoomOut3D = () => {
   if (camera) {
-    const dir = new THREE.Vector3()
-    camera.getWorldDirection(dir)
-    camera.position.addScaledVector(dir, -5)
+    camera.zoom = Math.max(camera.zoom - 0.1, 0.1) // Min zoom limit
+    camera.updateProjectionMatrix()
+    renderer?.render(scene, camera)
   }
 }
 
 const resetView3D = () => {
   if (camera && controls) {
-    camera.position.set(5, 80, 5)
-    controls.target.set(5, 0, -10)
-    controls.update()
+    // Reset Zoom
+    camera.zoom = 1
+    camera.updateProjectionMatrix()
+
+    // Reset Position (matches the one in animate/controls logic)
+    // We need to re-center based on map if possible, but hardcoded valid position is fine
+    // Previously: camera.position.set(5, 100, 5) -> changed Y to 100
+    // And target needs to be reset.
+    // However, since we dynamically set target based on floor center, we should maybe re-calculate that?
+    // Or just reset to a reasonable default.
+
+    // Actually best to re-focus on the calculated target if available.
+    // But since `target` is set inside `createSlamMap` heavily, let's just reset zoom for now
+    // and maybe put camera back to 0, 100, 0 local?
+
+    camera.position.set(0, 100, 0)
+    controls.reset() // This might reset target to 0,0,0
+
+    // Re-apply target if we knew it... 
+    // Let's just rely on OrbitControls to handle rotation limit etc.
+    renderer?.render(scene, camera)
   }
+}
+
+// Sidebar Resize Functions
+const startResize = () => {
+  isResizing.value = true
+  document.addEventListener('mousemove', onResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const onResize = (e) => {
+  if (!isResizing.value) return
+  const newWidth = window.innerWidth - e.clientX
+  if (newWidth >= 280 && newWidth <= 600) {
+    sidebarWidth.value = newWidth
+    nextTick(() => handleResize())
+  }
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  document.removeEventListener('mousemove', onResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  // Final resize update
+  nextTick(() => handleResize())
 }
 
 onMounted(async () => {
@@ -617,13 +818,44 @@ watch(theme, () => {
 
 /* Sidebar */
 .monitoring-sidebar {
-  width: 320px;
+  /* width: 320px; Removed for dynamic width */
+  min-width: 280px;
+  max-width: 600px;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   z-index: 10;
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  /* Increased hit area */
+  transform: translateX(-50%);
+  /* Center on the border */
+  cursor: col-resize;
+  z-index: 50;
+  /* Higher z-index */
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.resize-handle:hover,
+.resize-handle:active,
+.monitoring-sidebar.resizing .resize-handle {
+  background: rgba(16, 185, 129, 0.5);
+  /* Visible color on interaction */
+}
+
+/* Helper class */
+.pointer-events-none {
+  pointer-events: none;
 }
 
 .sidebar-header {
@@ -918,5 +1150,63 @@ watch(theme, () => {
   100% {
     opacity: 1;
   }
+}
+
+/* Debug Panel (Dev Mode Only) */
+.debug-panel {
+  background: rgba(255, 100, 100, 0.1);
+  border: 2px dashed #ff6b6b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.debug-header {
+  font-weight: bold;
+  color: #ff6b6b;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.debug-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+}
+
+.debug-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.debug-row {
+  display: flex;
+  gap: 4px;
+}
+
+.debug-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.debug-btn:hover {
+  background: var(--accent-color);
+  color: white;
+}
+
+.debug-btn.reset {
+  font-size: 16px;
 }
 </style>

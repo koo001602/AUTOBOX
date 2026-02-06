@@ -554,6 +554,56 @@ def handle_box_image(message: dict):
         logger.error(f"Error processing box image: {e}")
 
 
+def handle_rc_state(message: dict):
+    """Handle RC state data from Raspberry Pi.
+    
+    Expected message format from Raspberry Pi:
+    Topic: factory_msg/state/rc
+    Payload: JSON data containing RC state information
+    
+    Saves received data to backend/logs/rc_state_latest.json (single file, overwritten).
+    This prevents storage from filling up with files created every 0.5 seconds.
+    """
+    logger.debug(f"RC state data received from topic: {message.get('topic')}")
+    
+    try:
+        data = message.get("data", {})
+        if not data:
+            logger.warning("Empty data received in state/rc message")
+            return
+        
+        logger.debug(f"RC state received: {data}")
+        
+        # 데이터 저장 로직
+        import os
+        
+        # 저장 디렉토리 설정 (Docker Volume: /app/logs -> Host: ./backend/logs)
+        save_dir = "./logs"
+        
+        # 디렉토리가 없으면 생성
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+            logger.info(f"Created directory: {save_dir}")
+            
+        # 단일 파일로 저장 (덮어쓰기) - 저장소 최적화
+        filename = f"{save_dir}/rc_state_latest.json"
+        
+        # 전체 메시지 구조 저장 (topic, data, timestamp 포함)
+        save_data = {
+            "topic": message.get("topic"),
+            "data": data,
+            "received_at": message.get("timestamp"),
+            "saved_at": datetime.now().isoformat()
+        }
+        
+        # JSON 파일 저장 (덮어쓰기)
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(save_data, f, ensure_ascii=False, indent=4)
+
+    except Exception as e:
+        logger.error(f"Error processing RC state: {e}")
+
+
 # Register default handlers
 def register_default_handlers():
     """Register default message handlers."""
@@ -563,3 +613,4 @@ def register_default_handlers():
     mqtt_service.subscribe("device/status", handle_device_status)
     mqtt_service.subscribe("alert/#", handle_alert_notification)
     mqtt_service.subscribe("command/box_img", handle_box_image)
+    mqtt_service.subscribe("state/rc", handle_rc_state)

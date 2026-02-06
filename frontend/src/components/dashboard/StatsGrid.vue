@@ -19,9 +19,11 @@ const formatProcessTime = (seconds) => {
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-icon total">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m7.5 4.27 9 5.15" />
-          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+          <path
+            d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
         </svg>
       </div>
       <div class="stat-content">
@@ -32,9 +34,10 @@ const formatProcessTime = (seconds) => {
 
     <div class="stat-card">
       <div class="stat-icon success">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-          <polyline points="22 4 12 14.01 9 11.01"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
         </svg>
       </div>
       <div class="stat-content">
@@ -45,8 +48,9 @@ const formatProcessTime = (seconds) => {
 
     <div class="stat-card">
       <div class="stat-icon rate">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 20v-6M6 20V10M18 20V4"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20v-6M6 20V10M18 20V4" />
         </svg>
       </div>
       <div class="stat-content">
@@ -57,9 +61,10 @@ const formatProcessTime = (seconds) => {
 
     <div class="stat-card">
       <div class="stat-icon time">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
         </svg>
       </div>
       <div class="stat-content">
@@ -68,15 +73,25 @@ const formatProcessTime = (seconds) => {
       </div>
     </div>
 
+    <!-- 추가 액션 버튼 영역 (다운로드, 새로고침 등) -->
+    <div class="stats-actions" v-if="$slots.actions">
+      <slot name="actions"></slot>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  display: flex;
   gap: 12px;
   flex-shrink: 0;
+  width: 100%;
+}
+
+.stats-grid>.stat-card {
+  flex: 1;
+  min-width: 0;
+  /* flex item 축소 허용 */
 }
 
 .stat-card {
@@ -114,17 +129,36 @@ const formatProcessTime = (seconds) => {
   flex-shrink: 0;
 }
 
-.stat-icon.total { background: rgba(99, 102, 241, 0.1); color: var(--color-primary); }
-.stat-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--color-success); }
-.stat-icon.rate { background: rgba(245, 158, 11, 0.1); color: var(--color-warning); }
-.stat-icon.time { background: rgba(14, 165, 233, 0.1); color: var(--color-info); }
-.stat-icon.error { background: rgba(239, 68, 68, 0.1); color: var(--color-error); }
+.stat-icon.total {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
+}
+
+.stat-icon.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.stat-icon.rate {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+}
+
+.stat-icon.time {
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--color-info);
+}
+
+.stat-icon.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+}
 
 .stat-content {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0; 
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -145,8 +179,13 @@ const formatProcessTime = (seconds) => {
   font-weight: 600;
 }
 
-.stat-value.success { color: var(--color-success); }
-.stat-value.error { color: var(--color-error); }
+.stat-value.success {
+  color: var(--color-success);
+}
+
+.stat-value.error {
+  color: var(--color-error);
+}
 
 .stat-label {
   font-size: 12px;
@@ -172,64 +211,107 @@ const formatProcessTime = (seconds) => {
 }
 
 @media (max-width: 768px) {
-  .stats-grid { 
+  .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 12px;
   }
-  
+
   .stat-card {
     padding: 16px;
     gap: 12px;
   }
-  
+
   .stat-icon {
     width: 48px;
     height: 48px;
   }
-  
+
   .stat-icon svg {
     width: 24px;
     height: 24px;
   }
-  
+
   .stat-value {
     font-size: 24px;
   }
-  
+
   .stat-label {
     font-size: 10px;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid { 
+  .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
-  
+
   .stat-card:last-child:nth-child(odd) {
     grid-column: span 2;
   }
-  
+
   .stat-card {
     padding: 12px;
     gap: 10px;
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .stat-icon {
     width: 40px;
     height: 40px;
   }
-  
+
   .stat-icon svg {
     width: 20px;
     height: 20px;
   }
-  
+
   .stat-value {
     font-size: 22px;
+  }
+}
+
+.stats-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  /* 우측 정렬 */
+  align-items: center;
+}
+
+/* HomeView에서 주입될 버튼 스타일 */
+:deep(.btn-action) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  backdrop-filter: blur(var(--blur-amount));
+}
+
+:deep(.btn-action:hover) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+:deep(.btn-action.excel:hover) {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+@media (max-width: 1200px) {
+  .stats-actions {
+    margin-left: 0;
   }
 }
 </style>

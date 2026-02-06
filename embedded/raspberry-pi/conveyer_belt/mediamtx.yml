@@ -1,0 +1,12 @@
+paths:
+  cam1:
+    source: udp://0.0.0.0:5000
+    sourceOnDemand: no
+
+webrtc: yes
+webrtcAddress: :8889
+
+webrtcAdditionalHosts: ["100.76.180.25"]
+
+rtmp: no
+hls: no

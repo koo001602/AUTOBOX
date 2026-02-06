@@ -3,21 +3,36 @@ services:
     image: eclipse-mosquitto:2.0
     container_name: mosquitto_broker
     ports:
-      - "1883:1883"  # 외부(라파 본체/젯슨)에서 접속용
+      - "1883:1883"
     volumes:
       - ./config:/mosquitto/config
       - ./certs:/mosquitto/config/certs
     restart: always
 
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: parking-relay
+    network_mode: host
+    volumes: 
+      - ./mediamtx.yml:/mediamtx.yml
+    restart: unless-stopped
+
   app:
-    build: ./control_app  
-    container_name: control_app
-    privileged: true     
+    build: ./app
+    container_name: app
+    privileged: true
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./certs:/certs
+      - ./app:/app
     devices:
-      - "/dev/i2c-1:/dev/i2c-1"       
-      - "/dev/gpiomem:/dev/gpiomem"   
+      - "/dev/i2c-1:/dev/i2c-1"
+      - "/dev/gpiomem:/dev/gpiomem"
+      - "/dev/video0:/dev/video0"
     environment:
       - PYTHONUNBUFFERED=1
+      - QT_QPA_PLATFORM=offscreen
     depends_on:
-      - mqtt-broker       
+      - mqtt-broker
     restart: always

@@ -9,14 +9,16 @@ from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.executors import MultiThreadedExecutor
 
-# [NEW] 속도 명령 메시지 임포트
+
 from geometry_msgs.msg import Twist
-
-# Action 인터페이스
 from custom_interfaces.action import Parking
-
-# 같은 폴더에 있는 라이브러리 (rc_car_driver는 제거됨)
 import parking_system.stanley_control as sc
+
+
+
+import threading
+from parking_system.rc_cam_lib import RC_Cam
+
 
 class ParkingActionServer(Node):
 
@@ -49,26 +51,41 @@ class ParkingActionServer(Node):
         self.MARKER_GAP = 0.155
         
         # 제어 파라미터
-        self.STOP_DISTANCE = 0.50
-        self.SLOW_DISTANCE = 1.0
+        self.STOP_DISTANCE = 0.68
+        self.SLOW_DISTANCE = 1.2
+        self.FORWARD_DISTANCE = 1.1
         self.FAST_SPEED = -0.15
         self.SLOW_SPEED = -0.1
 
         # ----------------------------------------
-        # 3. 카메라 설정
+        # 3. 카메라 & 스레드 설정 
         # ----------------------------------------
-        self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        self.cap.set(cv2.CAP_PROP_FPS, 30)
 
-        self.cam_matrix = np.array([[1155, 0, 640], [0, 1155, 360], [0, 0, 1]], dtype=float)
+        self.rc_cam = RC_Cam()
+
+        # 스레드 제어 변수
+        self.running = True
+        self.latest_frame = None        # 메인 로직과 공유할 프레임
+        self.frame_lock = threading.Lock() # 동시 접근 방지
+        self.streaming_mode = 'FRONT'   # 기본값: 전방 카메라 (주행 모드)
+
+        # 백그라운드 스트리밍 스레드 시작
+        self.stream_thread = threading.Thread(target=self.thread_cam_loop)
+        self.stream_thread.daemon = True 
+        self.stream_thread.start()
+        
+
+        # 아루코마커 설정
+        #self.cam_matrix = np.array([[1155, 0, 640], [0, 1155, 360], [0, 0, 1]], dtype=float)
+        self.cam_matrix = np.array([[771, 0, 320], [0, 771, 240], [0, 0, 1]], dtype=float)
         self.dist_coeffs = np.zeros(5)
 
         self.aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
         self.parameters = aruco.DetectorParameters()
         self.detector = aruco.ArucoDetector(self.aruco_dict, self.parameters)
 
+
+        
         # ----------------------------------------
         # 4. 상태 변수
         # ----------------------------------------
@@ -78,6 +95,39 @@ class ParkingActionServer(Node):
         self.correction_mode = False
 
         self.get_logger().info("Parking Action Server Ready (Publishing to /cmd_vel_parking)")
+
+
+    def thread_cam_loop(self):
+        """
+        이 함수는 계속 돌면서 현재 모드(FRONT/REAR)에 맞는 영상을 
+        관제실로 쏘고(Stream), 최신 프레임을 저장합니다.
+        """
+        while self.running and rclpy.ok():
+            # 1. 모드에 따른 카메라 번호 결정 (0:후방, 1:전방 가정)
+            if self.streaming_mode == 'FRONT':
+                target_idx = 0
+            else:
+                target_idx = 2
+            
+            # 2. 카메라 전환 (내부적으로 알아서 끄고 켬)
+            self.rc_cam.switch_camera(target_idx)
+            
+            # 3. 프레임 읽기 (인자 없이 호출)
+            ret, frame = self.rc_cam.get_frame()
+            
+            if ret:
+                # 4. GStreamer 송출 (관제실용)
+                self.rc_cam.stream()
+                
+                # 5. 주차 로직용 프레임 공유 (Lock 사용)
+                with self.frame_lock:
+                    self.latest_frame = frame.copy()
+            else:
+                # 카메라 전환 시 잠시 딜레이가 생길 수 있음
+                time.sleep(0.01)
+
+            # 과부하 방지
+            time.sleep(0.01)
 
     # --- Action Callbacks ---
 
@@ -94,9 +144,36 @@ class ParkingActionServer(Node):
     def execute_callback(self, goal_handle):
         self.get_logger().info('Executing Parking Sequence...')
         
+        self.streaming_mode = 'REAR'
+        self.get_logger().info('Switched to REAR Camera')
+        time.sleep(0.5)
         feedback_msg = Parking.Feedback()
         result = Parking.Result()
         parking_complete = False
+
+        goal = goal_handle.request
+        
+        # --- [수정 1] 상태 변수 초기화 ---
+        # 이전 주행의 데이터가 남아있지 않도록 초기화합니다.
+        self.state = sc.State(x=0.0, y=0.0, yaw=0.0, v=0.0)
+        self.correction_mode = False
+        
+        # --- [수정 2] 카메라 버퍼 비우기 (핵심) ---
+        # OpenCV 버퍼에 남아있는 '과거 프레임(주차된 상태)'을 강제로 읽어서 버립니다.
+        # 이렇게 해야 현재의 실제 위치를 바로 인식할 수 있습니다.
+        
+
+        # 파라미터 업데이트 (기존 코드 유지)
+        if goal.stop_distance > 0.0:
+            self.STOP_DISTANCE = goal.stop_distance
+            self.get_logger().info(f"Updated STOP_DISTANCE: {self.STOP_DISTANCE}m")
+            
+        if goal.slow_distance > 0.0:
+            self.SLOW_DISTANCE = goal.slow_distance
+            self.get_logger().info(f"Updated SLOW_DISTANCE: {self.SLOW_DISTANCE}m")
+        if goal.forward_distance > 0.0:
+            self.FORWARD_DISTANCE = goal.forward_distance
+            self.get_logger().info(f"Updated FORWARD_DISTANCE: {self.FORWARD_DISTANCE}m")
 
         try:
             while rclpy.ok() and not parking_complete:
@@ -105,15 +182,27 @@ class ParkingActionServer(Node):
                     goal_handle.canceled()
                     self.stop_car()
                     self.get_logger().info('Parking Canceled')
+                    self.streaming_mode = 'FRONT'
+                    self.get_logger().info('Parking Canceled. Back to FRONT Camera')
                     return result
+                
+                    
 
                 # 2. 영상 처리
-                ret, frame = self.cap.read()
-                if not ret:
+                frame = None
+                with self.frame_lock:
+                    if self.latest_frame is not None:
+                        frame = self.latest_frame.copy()
+                
+                if frame is None:
                     continue
 
+                
+                # ... (이하 기존 로직과 동일) ...
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 corners, ids, rejected = self.detector.detectMarkers(gray)
+                
+                # ... 생략 ...
 
                 detected = False
                 control_steer = 0.0
@@ -160,7 +249,7 @@ class ParkingActionServer(Node):
 
                         # (B) 상태 결정
                         if self.correction_mode:
-                            if dist > 0.9:
+                            if dist > self.FORWARD_DISTANCE:
                                 self.correction_mode = False
                                 control_speed = 0.0
                             else:
@@ -209,11 +298,14 @@ class ParkingActionServer(Node):
         except Exception as e:
             self.get_logger().error(f"Error: {e}")
             self.stop_car()
+            self.streaming_mode = 'FRONT'
             goal_handle.abort()
             result.success = False
             return result
 
         self.stop_car()
+        self.get_logger().info("Parking Complete. Back to FRONT Camera")
+        self.streaming_mode = 'FRONT'
         
         if parking_complete:
             goal_handle.succeed()

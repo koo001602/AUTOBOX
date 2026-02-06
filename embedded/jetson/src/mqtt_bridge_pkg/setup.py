@@ -29,6 +29,8 @@ setup(
         'console_scripts': [
             # 3. 실행 파일 연결
             'mqtt_bridge_node = mqtt_bridge_pkg.mqtt_bridge_node:main',
+            'pose_publisher = mqtt_bridge_pkg.pose_publisher:main',
+            'path_publisher = mqtt_bridge_pkg.path_publisher:main',
         ],
     },
 )

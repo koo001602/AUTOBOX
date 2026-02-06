@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     
     # OCR Configuration
     OCR_ENABLED: bool = True
-    OCR_API_URL: str = "https://5c9a-2001-2d8-7199-35fb-491c-177a-f8d2-e4d4.ngrok-free.app/predict/base64"
+    OCR_API_URL: str = "https://2ed2-211-192-210-22.ngrok-free.app/predict/base64"
     OCR_WATCH_DIR: str = "./data"
     
     @property

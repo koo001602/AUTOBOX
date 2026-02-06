@@ -10,7 +10,14 @@ import {
   getExportUrl,
   fetchOcrResults,
 } from "../api";
-import { STATUS_MAP, STATUS_PRIORITY, CITIES, CHART_COLORS, POLLING_INTERVALS } from "../constants";
+import {
+  STATUS_MAP,
+  STATUS_PRIORITY,
+  CITIES,
+  CHART_COLORS,
+  POLLING_INTERVALS,
+  REGION_COLORS,
+} from "../constants";
 import { getToday } from "../utils/date";
 
 export function useDashboard() {
@@ -19,38 +26,69 @@ export function useDashboard() {
   const selectedDate = ref(getToday());
 
   // 목 데이터 (테스트용 - dev:mock 모드에서만 사용)
-  const isMockMode = import.meta.env.MODE === 'mock';
+  const isMockMode = import.meta.env.MODE === "mock";
   const mockChartData = {
     completed: [
-      { x: '전체', y: 45, fillColor: '#10b981' },
-      { x: '서울', y: 18, fillColor: '#3b82f6' },
-      { x: '부산', y: 12, fillColor: '#3b82f6' },
-      { x: '광주', y: 8, fillColor: '#3b82f6' },
-      { x: '대전', y: 4, fillColor: '#3b82f6' },
-      { x: '대구', y: 3, fillColor: '#3b82f6' }
+      { x: "전체", y: 45, fillColor: "#10b981" },
+      { x: "서울", y: 18, fillColor: "#3b82f6" },
+      { x: "부산", y: 12, fillColor: "#3b82f6" },
+      { x: "광주", y: 8, fillColor: "#3b82f6" },
+      { x: "대전", y: 4, fillColor: "#3b82f6" },
+      { x: "대구", y: 3, fillColor: "#3b82f6" },
     ],
     pending: [
-      { x: '전체', y: 22, fillColor: '#f59e0b' },
-      { x: '서울', y: 7, fillColor: '#f59e0b' },
-      { x: '부산', y: 5, fillColor: '#f59e0b' },
-      { x: '광주', y: 4, fillColor: '#f59e0b' },
-      { x: '대전', y: 3, fillColor: '#f59e0b' },
-      { x: '대구', y: 3, fillColor: '#f59e0b' }
-    ]
+      { x: "전체", y: 22, fillColor: "#f59e0b" },
+      { x: "서울", y: 7, fillColor: "#f59e0b" },
+      { x: "부산", y: 5, fillColor: "#f59e0b" },
+      { x: "광주", y: 4, fillColor: "#f59e0b" },
+      { x: "대전", y: 3, fillColor: "#f59e0b" },
+      { x: "대구", y: 3, fillColor: "#f59e0b" },
+    ],
   };
 
   // 물류 목록 목 데이터
   const mockLogisticsData = [
-    { id: '001', waybillId: 1, target: '서울', status: '완료', rawStatus: 'COMPLETED', dateTime: '2026-02-05T13:45:00', processTime: 12, confidenceScore: 98.5 },
-    { id: '002', waybillId: 2, target: '부산', status: '이동 중', rawStatus: 'MOVING', dateTime: '2026-02-05T14:10:00', processTime: null, confidenceScore: 97.2 },
-    { id: '003', waybillId: 3, target: '광주', status: '대기 중', rawStatus: 'READY', dateTime: '2026-02-05T14:15:00', processTime: null, confidenceScore: 99.1 }
+    {
+      id: "001",
+      waybillId: 1,
+      target: "서울",
+      status: "완료",
+      rawStatus: "COMPLETED",
+      dateTime: "2026-02-05T13:45:00",
+      processTime: 12,
+      confidenceScore: 98.5,
+    },
+    {
+      id: "002",
+      waybillId: 2,
+      target: "부산",
+      status: "이동 중",
+      rawStatus: "MOVING",
+      dateTime: "2026-02-05T14:10:00",
+      processTime: null,
+      confidenceScore: 97.2,
+    },
+    {
+      id: "003",
+      waybillId: 3,
+      target: "광주",
+      status: "대기 중",
+      rawStatus: "READY",
+      dateTime: "2026-02-05T14:15:00",
+      processTime: null,
+      confidenceScore: 99.1,
+    },
   ];
 
   // 반응형 데이터 (mock 모드일 때만 초기 데이터 설정)
-  const chartSeries = ref(isMockMode ? [
-    { name: '완료 건수', data: mockChartData.completed },
-    { name: '남은 건수', data: mockChartData.pending }
-  ] : []);
+  const chartSeries = ref(
+    isMockMode
+      ? [
+          { name: "완료 건수", data: mockChartData.completed },
+          { name: "남은 건수", data: mockChartData.pending },
+        ]
+      : [],
+  );
   const logisticsData = ref(isMockMode ? mockLogisticsData : []);
   const latestScan = ref(null);
   const chartMax = ref(isMockMode ? 45 : 10);
@@ -60,19 +98,24 @@ export function useDashboard() {
   // 추가 통계 데이터
   const dailyStats = ref(null);
   const alerts = ref([]);
-  const todaySummary = ref(isMockMode ? {
-    total: 67,
-    completed: 45,
-    error: 0,
-    avgProcessTime: 8,
-    successRate: 67,
-  } : {
-    total: 0,
-    completed: 0,
-    error: 0,
-    avgProcessTime: null,
-    successRate: 0,
-  });
+  const successRateData = ref([]); // 날짜별 성공률 데이터 (최근 7일)
+  const todaySummary = ref(
+    isMockMode
+      ? {
+          total: 67,
+          completed: 45,
+          error: 0,
+          avgProcessTime: 8,
+          successRate: 67,
+        }
+      : {
+          total: 0,
+          completed: 0,
+          error: 0,
+          avgProcessTime: null,
+          successRate: 0,
+        },
+  );
 
   // 필터
   const filterRegion = ref("전체");
@@ -94,14 +137,14 @@ export function useDashboard() {
       // 날짜 필터링: 오늘 날짜인 경우 UTC 시차 문제로 데이터가 안 보일 수 있으므로
       // 날짜 필터를 제거하여 최근 데이터를 가져오도록 함
       const waybillParams = { size: 100 };
-      if (selectedDate.value && selectedDate.value !== getToday()) {
+      // 선택한 날짜 기준으로 필터링 (모든 날짜에 동일하게 적용)
+      if (selectedDate.value) {
         waybillParams.date = selectedDate.value;
       }
 
       const results = await Promise.allSettled([
         fetchDashboardStats(selectedDate.value),
         fetchWaybills(waybillParams),
-        fetchDailyStats(selectedDate.value, selectedDate.value),
         fetchAlerts({ resolved: false, size: 50 }),
         fetchOcrResults(50),
       ]);
@@ -110,12 +153,10 @@ export function useDashboard() {
         results[0].status === "fulfilled" ? results[0].value : { data: { data: [] } };
       const waybillsRes =
         results[1].status === "fulfilled" ? results[1].value : { data: { data: { items: [] } } };
-      const dailyRes =
-        results[2].status === "fulfilled" ? results[2].value : { data: { data: [] } };
       const alertsRes =
-        results[3].status === "fulfilled" ? results[3].value : { data: { data: [] } };
+        results[2].status === "fulfilled" ? results[2].value : { data: { data: [] } };
       const ocrRes =
-        results[4].status === "fulfilled" ? results[4].value : { data: { data: { items: [] } } };
+        results[3].status === "fulfilled" ? results[3].value : { data: { data: { items: [] } } };
 
       // Log errors if any
       results.forEach((res, index) => {
@@ -126,6 +167,8 @@ export function useDashboard() {
 
       // 구역별 통계 처리
       const regionStats = statsRes.data.data || [];
+      console.log("Region Stats Response:", regionStats); // 디버깅용 로그
+
       let totalDone = 0;
       let totalLeft = 0;
       let totalError = 0;
@@ -133,18 +176,42 @@ export function useDashboard() {
       const finishedArr = [];
       const pendingArr = [];
 
-      CITIES.forEach((city) => {
-        const cityData = regionStats.find((r) => r.region_name === city) || {
+      // 영문 지역명 매핑 (DB에 영문으로 저장된 경우 대응)
+      const REGION_NAME_MAP = {
+        Seoul: "서울",
+        Busan: "부산",
+        Gwangju: "광주",
+        Daejeon: "대전",
+        Daegu: "대구",
+        seoul: "서울",
+        busan: "부산",
+        gwangju: "광주",
+        daejeon: "대전",
+        daegu: "대구",
+      };
+
+      CITIES.forEach((city, index) => {
+        // 1. 정확히 일치하는 이름 찾기
+        let cityData = regionStats.find((r) => r.region_name === city);
+
+        // 2. 없으면 영문 매핑으로 찾기
+        if (!cityData) {
+          cityData = regionStats.find((r) => REGION_NAME_MAP[r.region_name] === city);
+        }
+
+        // 데이터가 없으면 0으로 초기화
+        cityData = cityData || {
           completed: 0,
           ready: 0,
           moving: 0,
           error: 0,
         };
+
         const done = Number(cityData.completed || 0);
         const left = Number(cityData.ready || 0) + Number(cityData.moving || 0);
         const err = Number(cityData.error || 0);
 
-        finishedArr.push({ x: city, y: done, fillColor: CHART_COLORS.completed });
+        finishedArr.push({ x: city, y: done, fillColor: REGION_COLORS[index] });
         // pending: amber-500 (#f59e0b)
         pendingArr.push({ x: city, y: left + err, fillColor: "#f59e0b" });
 
@@ -169,37 +236,54 @@ export function useDashboard() {
         { name: "남은 건수", data: pendingArr },
       ];
 
-      // 일별 통계 처리
-      const dailyData = dailyRes.data.data?.[0] || null;
-      dailyStats.value = dailyData;
-
-      // 운송장 목록 처리
+      // 운송장 목록 처리 (프론트엔드 날짜 필터링 강화)
       const waybillItems = waybillsRes.data.data?.items || [];
-      const waybillData = waybillItems.map((item) => ({
-        id: item.tracking_number,
-        waybillId: item.waybill_id,
-        target: item.destination || "-",
-        status: STATUS_MAP[item.status] || item.status,
-        rawStatus: item.status,
-        dateTime: item.completed_at || item.created_at || "",
-        processTime: item.process_time_sec || null,
-        confidenceScore: item.confidence_score || null,
-      }));
+      const waybillData = waybillItems
+        .filter((item) => {
+          if (!selectedDate.value) return true;
+          // created_at 또는 completed_at 중 하나라도 해당 날짜와 일치하면 표시하도록 할 수도 있지만,
+          // 보통 목록은 '해당 날짜에 발생한 건'을 의미하므로 created_at 기준 필터링
+          const itemDate = (item.created_at || "").split("T")[0];
+          return itemDate === selectedDate.value;
+        })
+        .map((item) => ({
+          id: item.tracking_number,
+          waybillId: item.waybill_id,
+          target: item.destination || "-",
+          status: STATUS_MAP[item.status] || item.status,
+          rawStatus: item.status,
+          dateTime: item.completed_at || item.created_at || "",
+          createdAt: item.created_at || "",
+          completedAt: item.completed_at || null,
+          processTime: item.process_time_sec || null,
+          confidenceScore: item.confidence_score || null,
+        }));
 
-      // OCR 결과 처리 및 병합 (필터링 최소화)
+      // OCR 결과 처리 및 병합 (날짜 필터링 + 중복 제거)
       const ocrItems = ocrRes.data?.data?.items || [];
       const existingTrackingNumbers = new Set(waybillData.map((item) => item.id));
 
       const ocrData = ocrItems
-        .filter((ocrItem) => !existingTrackingNumbers.has(ocrItem.tracking_number)) // 중복만 제거
+        .filter((ocrItem) => {
+          // 중복 제거
+          if (existingTrackingNumbers.has(ocrItem.tracking_number)) return false;
+
+          // 날짜 필터링 (선택된 날짜가 있는 경우)
+          if (selectedDate.value) {
+            const itemDate = (ocrItem.processed_at || "").split("T")[0];
+            return itemDate === selectedDate.value;
+          }
+          return true;
+        })
         .map((ocrItem) => ({
           id: ocrItem.tracking_number,
           waybillId: ocrItem.result_id || `OCR-${Date.now()}`,
           target: ocrItem.region_code || "-",
-          // status: 'completed'를 '대기 중'으로 매핑하지 않고 원본 값 사용하거나 매핑
           status: "대기 중",
           rawStatus: "ready",
           dateTime: ocrItem.processed_at || new Date().toISOString(),
+          createdAt: ocrItem.processed_at || new Date().toISOString(),
+          completedAt: null,
           processTime: null,
           confidenceScore: null,
           recipientName: ocrItem.recipient_name,
@@ -210,23 +294,49 @@ export function useDashboard() {
         }));
 
       console.log("Waybill Data:", waybillData.length);
-      console.log("OCR Data:", ocrData.length);
+      console.log("OCR Data (Filtered):", ocrData.length);
 
-      // waybill 데이터와 OCR 데이터 병합
+      // waybill 데이터와 OCR 데이터 병합 -> 물류 목록에 표시될 최종 데이터
       logisticsData.value = [...ocrData, ...waybillData];
 
-      // 오늘 요약 정보 업데이트 (실시간 데이터 반영을 위해 frontend 계산 사용)
-      const allItemsForSummary = [...ocrData, ...waybillItems];
+      // 오늘 요약 정보 업데이트
+      // dailyStats가 있으면 그것을 우선 사용하고, 없으면 목록 데이터에서 계산
+      const allItemsForSummary = [...ocrData, ...waybillData];
       const summaryTotal = allItemsForSummary.length;
       const summaryCompleted = allItemsForSummary.filter((i) => i.status === "완료").length;
       const summaryError = allItemsForSummary.filter((i) => i.status === "오류").length;
 
+      // 평균 처리 시간 계산 (완료된 항목들의 processTime 평균)
+      const completedItems = allItemsForSummary.filter(
+        (i) => i.status === "완료" && i.processTime !== null,
+      );
+      let avgProcessTime = null;
+      if (completedItems.length > 0) {
+        const totalProcessTime = completedItems.reduce(
+          (sum, item) => sum + (item.processTime || 0),
+          0,
+        );
+        avgProcessTime = Math.round(totalProcessTime / completedItems.length);
+      } else if (dailyStats.value?.avg_process_time_sec) {
+        avgProcessTime = dailyStats.value.avg_process_time_sec;
+      }
+
+      // 선택된 날짜의 dailyStats가 있으면 해당 값 사용, 없으면 계산된 값 사용
+      const selectedDayTotal = dailyStats.value?.total_count;
+      const selectedDayCompleted = dailyStats.value?.completed_count;
+      const selectedDayError = dailyStats.value?.error_count;
+
       todaySummary.value = {
-        total: summaryTotal,
-        completed: summaryCompleted,
-        error: summaryError,
-        avgProcessTime: dailyData?.avg_process_time_sec || null,
-        successRate: summaryTotal > 0 ? Math.round((summaryCompleted / summaryTotal) * 100) : 0,
+        total: selectedDayTotal !== undefined ? selectedDayTotal : summaryTotal,
+        completed: selectedDayCompleted !== undefined ? selectedDayCompleted : summaryCompleted,
+        error: selectedDayError !== undefined ? selectedDayError : summaryError,
+        avgProcessTime: avgProcessTime,
+        successRate:
+          dailyStats.value?.success_rate !== undefined
+            ? Math.round(dailyStats.value.success_rate)
+            : summaryTotal > 0
+              ? Math.round((summaryCompleted / summaryTotal) * 100)
+              : 0,
       };
 
       // 알림 데이터
@@ -275,8 +385,14 @@ export function useDashboard() {
   /**
    * 엑셀 다운로드
    */
-  const downloadExcel = () => {
-    const url = getExportUrl(selectedDate.value);
+  /**
+   * 엑셀 다운로드 (옵션: date 또는 { startDate, endDate })
+   * 인자가 없으면 전체 다운로드
+   */
+  const downloadExcel = (options) => {
+    // options가 있으면 그대로 사용, 없으면 전체 (또는 현재 선택된 날짜 로직 제거)
+    // HomeView에서 명시적으로 호출하도록 변경
+    const url = getExportUrl(options);
     window.open(url, "_blank");
   };
 
@@ -284,27 +400,21 @@ export function useDashboard() {
    * 필터링된 물류 데이터 (computed)
    */
   const filteredLogisticsData = computed(() => {
-    // 디버깅을 위해 클라이언트 사이드 필터링을 잠시 비활성화하고 전체 데이터 반환
-    // 나중에 다시 활성화하되, 지금은 데이터를 보이게 하는 것이 최우선
-    return logisticsData.value;
-
-    /* 기존 필터링 로직 주석 처리
-    const filtered = logisticsData.value.filter(item => {
-      const regionMatch = filterRegion.value === '전체' || item.target === filterRegion.value
-      const statusMatch = filterStatus.value === '전체' || item.status === filterStatus.value
-      return regionMatch && statusMatch
-    })
+    const filtered = logisticsData.value.filter((item) => {
+      const regionMatch = filterRegion.value === "전체" || item.target === filterRegion.value;
+      const statusMatch = filterStatus.value === "전체" || item.status === filterStatus.value;
+      return regionMatch && statusMatch;
+    });
 
     return filtered.sort((a, b) => {
-      const priorityA = STATUS_PRIORITY[a.status] || 99
-      const priorityB = STATUS_PRIORITY[b.status] || 99
+      const priorityA = STATUS_PRIORITY[a.status] || 99;
+      const priorityB = STATUS_PRIORITY[b.status] || 99;
 
-      if (priorityA !== priorityB) return priorityA - priorityB
-      if (a.dateTime < b.dateTime) return 1
-      if (a.dateTime > b.dateTime) return -1
-      return 0
-    })
-    */
+      if (priorityA !== priorityB) return priorityA - priorityB;
+      if (a.dateTime < b.dateTime) return 1;
+      if (a.dateTime > b.dateTime) return -1;
+      return 0;
+    });
   });
 
   /**
@@ -378,7 +488,7 @@ export function useDashboard() {
   const setupWebSocket = () => {
     try {
       const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/dashboard`;
 
       wsConnection = new WebSocket(wsUrl);
 
@@ -466,6 +576,7 @@ export function useDashboard() {
     dailyStats,
     alerts,
     todaySummary,
+    successRateData,
 
     // 필터
     filterRegion,

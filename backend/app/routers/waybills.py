@@ -319,8 +319,10 @@ async def list_waybills(
     # Apply filters
     if date:
         try:
-            filter_date = datetime.strptime(date, "%Y-%m-%d").date()
-            query = query.filter(func.date(LogisticsItem.created_at) == filter_date)
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            start_dt = datetime.combine(target_date, datetime.min.time())
+            end_dt = datetime.combine(target_date, datetime.max.time())
+            query = query.filter(LogisticsItem.created_at >= start_dt, LogisticsItem.created_at <= end_dt)
         except ValueError:
             raise HTTPException(status_code=400, detail={
                 "code": "INVALID_DATE",

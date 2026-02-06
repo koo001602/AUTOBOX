@@ -32,8 +32,13 @@ async def get_region_stats(
     
     if date:
         try:
-            filter_date = datetime.strptime(date, "%Y-%m-%d").date()
-            query = query.filter(func.date(LogisticsItem.created_at) == filter_date)
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            # Use range query for better index usage and reliability
+            start_dt = datetime.combine(target_date, datetime.min.time())
+            end_dt = datetime.combine(target_date, datetime.max.time())
+            
+            # Adjust query to filter by range
+            query = query.filter(LogisticsItem.created_at >= start_dt, LogisticsItem.created_at <= end_dt)
         except ValueError:
             raise HTTPException(status_code=400, detail={
                 "code": "INVALID_DATE",
@@ -43,14 +48,11 @@ async def get_region_stats(
     query = query.filter(LogisticsItem.destination.isnot(None))
     results = query.group_by(LogisticsItem.destination).all()
     
-    # Get region names
-    regions = {r.region_id: r.region_name for r in db.query(Region).all()}
-    
     stats = []
     for row in results:
         stats.append({
             "region_id": row.destination,
-            "region_name": regions.get(row.destination, row.destination),
+            "region_name": row.destination, # Use raw destination from DB directly
             "total": row.total,
             "ready": row.ready,
             "moving": row.moving,
@@ -126,9 +128,11 @@ async def get_daily_stats(
 @router.get("/export")
 async def export_stats(
     date: Optional[str] = Query(None, description="조회 날짜 (YYYY-MM-DD)"),
+    start_date: Optional[str] = Query(None, description="시작 날짜 (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="종료 날짜 (YYYY-MM-DD)"),
     db: Session = Depends(get_db)
 ):
-    """STAT-004: 물류 데이터 엑셀 다운로드."""
+    """STAT-004: 물류 데이터 엑셀 다운로드 (단일 날짜, 기간, 또는 전체)."""
     try:
         import openpyxl
         from openpyxl.utils import get_column_letter
@@ -140,15 +144,32 @@ async def export_stats(
     
     query = db.query(LogisticsItem)
     
-    if date:
-        try:
+    # Date Filtering Logic
+    try:
+        if start_date and end_date:
+            # Range filter
+            s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+            e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            # Include the entire end date (up to 23:59:59.999999 if using datetime comparison on created_at)
+            # Since created_at is timestamp, we filter by date(created_at) or use range
+            query = query.filter(func.date(LogisticsItem.created_at) >= s_date, func.date(LogisticsItem.created_at) <= e_date)
+            filename_date = f"{start_date}_{end_date}"
+            
+        elif date:
+            # Single date filter
             filter_date = datetime.strptime(date, "%Y-%m-%d").date()
             query = query.filter(func.date(LogisticsItem.created_at) == filter_date)
-        except ValueError:
-            raise HTTPException(status_code=400, detail={
-                "code": "INVALID_DATE",
-                "message": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)"
-            })
+            filename_date = date
+            
+        else:
+            # No date filter -> All data
+            filename_date = datetime.now().strftime('%Y%m%d')
+            
+    except ValueError:
+        raise HTTPException(status_code=400, detail={
+            "code": "INVALID_DATE",
+            "message": "날짜 형식이 올바르지 않습니다 (YYYY-MM-DD)"
+        })
     
     items = query.order_by(LogisticsItem.created_at.desc()).all()
     
@@ -184,7 +205,7 @@ async def export_stats(
     wb.save(output)
     output.seek(0)
     
-    filename = f"logistics_export_{date or datetime.now().strftime('%Y%m%d')}.xlsx"
+    filename = f"logistics_export_{filename_date}.xlsx"
     
     return StreamingResponse(
         output,

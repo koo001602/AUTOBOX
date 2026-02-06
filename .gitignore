@@ -211,3 +211,6 @@ logs/
 *.jks
 secrets/
 credentials/
+
+
+*/model/

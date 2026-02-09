@@ -21,6 +21,7 @@
 #include "custom_interfaces/action/parking.hpp" 
 
 enum class MissionState {
+  START,
   IDLE,
   WAITING_FOR_LOADING,
   PRE_NAV_TO_TARGET, 

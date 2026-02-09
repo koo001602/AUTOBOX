@@ -3,7 +3,7 @@
 using namespace std::chrono_literals;
 
 MissionManager::MissionManager() : Node("mission_manager_node") {
-  current_state_ = MissionState::IDLE;
+  current_state_ = MissionState::START;
   nav2_goal_reached_ = false;
   unloading_step_ = 0;
   pre_move_step_ = 0;
@@ -14,8 +14,8 @@ MissionManager::MissionManager() : Node("mission_manager_node") {
   home_pose_.pose.position.y = 0.090556;
   home_pose_.pose.orientation.x = 0.0;
   home_pose_.pose.orientation.y = 0.0;
-  home_pose_.pose.orientation.z = 0.0;
-  home_pose_.pose.orientation.w = 1.0;
+  home_pose_.pose.orientation.z = sin(0.15/2.0);
+  home_pose_.pose.orientation.w = cos(0.15/2.0);
   
   // [기본값 설정] 첫 실행 시 주차 기록이 없으므로 Home 위치를 초기값으로 설정
   last_parked_pose_ = home_pose_;
@@ -36,18 +36,18 @@ MissionManager::MissionManager() : Node("mission_manager_node") {
   cmd_vel_pre_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel_pre", 10);
   remaindist_pub_ = this->create_publisher<std_msgs::msg::Float64>("/remain_dist", 10);
   remaintime_pub_ = this->create_publisher<std_msgs::msg::Int32>("/remain_time", 10);
-
+  
   // Pose Estimate Publisher (AMCL QoS에 맞춰 BEST_EFFORT로)
   auto init_qos = rclcpp::QoS(rclcpp::KeepLast(1))
                   .best_effort()
                   .durability_volatile();
 
   initial_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("/initialpose", init_qos);
-
+  
   // TF Listener 초기화
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
+  
   timer_ = this->create_wall_timer(
       100ms, std::bind(&MissionManager::state_machine_loop, this));
 
@@ -86,6 +86,52 @@ void MissionManager::rpi_command_callback(const geometry_msgs::msg::PoseStamped:
 void MissionManager::state_machine_loop() {
     auto now = this->now();
     switch (current_state_) {
+        case MissionState::START:
+        {
+           std_msgs::msg::Float64 act_msg;
+           if (unloading_step_ == 0) {
+              act_msg.data = -1.0;
+              actuator_pub_->publish(act_msg); 
+              RCLCPP_INFO(this->get_logger(), "Unloading Step 1: Forward");
+              unloading_start_time_ = now;
+              unloading_step_ = 1;
+          }
+          else if (unloading_step_ == 1) {
+              act_msg.data = -1.0;
+              actuator_pub_->publish(act_msg); 
+              if (now - unloading_start_time_ >= std::chrono::milliseconds(10000)) {
+                  act_msg.data = 1.0;
+                  actuator_pub_->publish(act_msg); 
+                  RCLCPP_INFO(this->get_logger(), "Unloading Step 2: Backward");
+                  unloading_start_time_ = now;
+                  unloading_step_ = 2;
+              }
+          }
+          else if (unloading_step_ == 2) {
+              act_msg.data = 1.0;
+              actuator_pub_->publish(act_msg); 
+              if (now - unloading_start_time_ >= std::chrono::milliseconds(3000)) {
+                  act_msg.data = 0.0;
+                  actuator_pub_->publish(act_msg); 
+                  RCLCPP_INFO(this->get_logger(), "Unloading Complete.");
+                  unloading_start_time_ = now;
+                  unloading_step_ = 3; 
+              }
+          }
+          else if (unloading_step_ == 3) {
+              act_msg.data = 0.0;
+              actuator_pub_->publish(act_msg); 
+              if (now - unloading_start_time_ >= std::chrono::milliseconds(500)) {
+                  act_msg.data = 0.0;
+                  actuator_pub_->publish(act_msg); 
+              
+                  current_state_ = MissionState::IDLE;
+                   
+              }
+          }
+        }
+        break;
+        
         case MissionState::IDLE:
         {
           std_msgs::msg::String status; status.data = "IDLE";
@@ -113,14 +159,20 @@ void MissionManager::state_machine_loop() {
                 std_msgs::msg::String status; status.data = "STARTING_DELIVER";
                 rpi_status_pub_->publish(status);
             }
-            else if (pre_move_step_ == 1) {
+            else if(pre_move_step_ == 1) {
+              if (now - pre_move_start_time_ >= std::chrono::milliseconds(500)) {
+                  pre_move_step_ = 2;
+                  pre_move_start_time_ = now;
+              }
+            }
+            else if (pre_move_step_ == 2) {
                 // [수정] 1.5초 동안 명령을 지속적으로 전송 (Watchdog 방지)
                 geometry_msgs::msg::Twist msg;
                 msg.linear.x = 0.2; 
                 cmd_vel_pre_pub_->publish(msg); 
 
                 // 1.5초 후 종료 체크
-                if (now - pre_move_start_time_ >= std::chrono::milliseconds(1500)) {
+                if (now - pre_move_start_time_ >= std::chrono::milliseconds(2000)) {
                    geometry_msgs::msg::Twist stop_msg;
                    stop_msg.linear.x = 0.0;
                    cmd_vel_pre_pub_->publish(stop_msg);
@@ -212,13 +264,19 @@ void MissionManager::state_machine_loop() {
               pre_move_start_time_ = now;
               pre_move_step_ = 1;
            }
-           else if (pre_move_step_ == 1) {
+           else if(pre_move_step_ == 1) {
+              if (now - pre_move_start_time_ >= std::chrono::milliseconds(500)) {
+                  pre_move_step_ = 2;
+                  pre_move_start_time_ = now;
+              }
+           }
+           else if (pre_move_step_ == 2) {
                // [수정] 1.5초 동안 명령 지속 전송
                geometry_msgs::msg::Twist msg;
                msg.linear.x = 0.2; 
                cmd_vel_pre_pub_->publish(msg);
 
-               if (now - pre_move_start_time_ >= std::chrono::milliseconds(1500)) {
+               if (now - pre_move_start_time_ >= std::chrono::milliseconds(2000)) {
                    geometry_msgs::msg::Twist stop_msg;
                    stop_msg.linear.x = 0.0;
                    cmd_vel_pre_pub_->publish(stop_msg);
@@ -302,13 +360,13 @@ void MissionManager::send_parking_goal() {
 
   // 파라미터 값 설정
   if (current_state_ == MissionState::NAV_TO_TARGET) {
-    goal_msg.stop_distance = 0.715;    
+    goal_msg.stop_distance = 0.7;    
     goal_msg.slow_distance = 1.2;     
     goal_msg.forward_distance = 1.1;  
   } else if (current_state_ == MissionState::NAV_TO_HOME) {
-    goal_msg.stop_distance = 0.615;   
-    goal_msg.slow_distance = 1.115;      
-    goal_msg.forward_distance = 1.015;   
+    goal_msg.stop_distance = 0.603;   
+    goal_msg.slow_distance = 1.1;      
+    goal_msg.forward_distance = 1.0;   
   }
 
   RCLCPP_INFO(this->get_logger(), 
@@ -341,7 +399,21 @@ void MissionManager::parking_result_callback(const GoalHandleParking::WrappedRes
       
       current_state_ = MissionState::IDLE;
     }
-  } else {
+  } 
+  else if (result.code == rclcpp_action::ResultCode::ABORTED) {
+    RCLCPP_ERROR(this->get_logger(), "Parking Action ABORTED (Marker lost or Timeout).");
+    
+    if (current_state_ == MissionState::PARKING_AT_TARGET) {
+      current_state_ = MissionState::PRE_NAV_TO_TARGET;
+      pre_move_step_ = 0;
+    } 
+    else if (current_state_ == MissionState::PARKING_AT_HOME) {
+      current_state_ = MissionState::PRE_NAV_TO_HOME;
+      pre_move_step_ = 0;
+    }
+
+  }
+  else {
     RCLCPP_ERROR(this->get_logger(), "Parking Failed or Canceled.");
   }
 }
@@ -385,8 +457,20 @@ void MissionManager::nav2_feedback_callback(
 void MissionManager::nav2_result_callback(const GoalHandleNav::WrappedResult & result) {
   if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
     RCLCPP_INFO(this->get_logger(), "Nav2 Goal Reached!");
+    save_parked_pose_from_tf();
     nav2_goal_reached_ = true;
-  } else {
+  }
+  else if(result.code == rclcpp_action::ResultCode::ABORTED) {
+    if (current_state_ == MissionState::NAV_TO_TARGET) {
+      current_state_ = MissionState::PRE_NAV_TO_TARGET;
+      pre_move_step_ = 0;
+    } 
+    else if (current_state_ == MissionState::NAV_TO_HOME) {
+      current_state_ = MissionState::PRE_NAV_TO_HOME;
+      pre_move_step_ = 0;
+    }
+  } 
+  else {
     RCLCPP_ERROR(this->get_logger(), "Nav2 Failed or Canceled.");
   }
 }

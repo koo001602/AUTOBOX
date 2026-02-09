@@ -554,6 +554,139 @@ def handle_box_image(message: dict):
         logger.error(f"Error processing box image: {e}")
 
 
+# ============================================
+# RC 상태 이름 설정 (라즈베리파이의 실제 상태명으로 수정하세요)
+# ============================================
+RC_STATE_DELIVERING = "DELIVERING"       # ← 배송 출발 시 RC 상태 (MOVING 전이 트리거)
+RC_STATE_READY_TO_LOAD = "READY_TO_LOAD" # ← 복귀 완료 시 RC 상태 (COMPLETED 전이 트리거)
+
+# Module-level variable to track previous RC state for transition detection
+_prev_rc_state = None
+
+
+def _auto_start_oldest_ready():
+    """Find the oldest READY logistics item (today) and mark it as MOVING."""
+    try:
+        from app.database import SessionLocal
+        from app.models.waybill import LogisticsItem, LogisticsStatus, WaybillMap
+        from sqlalchemy import func
+        import asyncio
+
+        db = SessionLocal()
+        try:
+            today = datetime.now().date()
+            item = db.query(LogisticsItem).filter(
+                LogisticsItem.status == LogisticsStatus.READY,
+                func.date(LogisticsItem.created_at) == today
+            ).order_by(LogisticsItem.created_at.asc()).first()
+
+            if not item:
+                logger.info("No READY waybill found to start delivery")
+                return
+
+            now = datetime.now()
+            item.status = LogisticsStatus.MOVING
+            item.updated_at = now
+            db.commit()
+
+            mapping = db.query(WaybillMap).filter(
+                WaybillMap.tracking_number == item.tracking_number
+            ).first()
+            waybill_id = mapping.waybill_id if mapping else None
+
+            logger.info(
+                f"Auto-started delivery: {item.tracking_number} "
+                f"(ID={waybill_id}, dest={item.destination}) → MOVING"
+            )
+
+            if waybill_id:
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(
+                        ws_manager.broadcast({
+                            "type": "waybill_update",
+                            "data": {
+                                "waybill_id": waybill_id,
+                                "tracking_number": item.tracking_number,
+                                "status": "MOVING",
+                                "destination": item.destination
+                            }
+                        })
+                    )
+                    loop.close()
+                except Exception as ws_err:
+                    logger.debug(f"Could not broadcast auto-start: {ws_err}")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"Error in auto-start: {e}")
+
+
+def _auto_complete_oldest_moving():
+    """Find the oldest MOVING logistics item (today) and mark it as COMPLETED."""
+    try:
+        from app.database import SessionLocal
+        from app.models.waybill import LogisticsItem, LogisticsStatus, WaybillMap
+        from sqlalchemy import func
+        import asyncio
+
+        db = SessionLocal()
+        try:
+            today = datetime.now().date()
+            item = db.query(LogisticsItem).filter(
+                LogisticsItem.status == LogisticsStatus.MOVING,
+                func.date(LogisticsItem.created_at) == today
+            ).order_by(LogisticsItem.created_at.asc()).first()
+
+            if not item:
+                logger.info("No MOVING waybill found to auto-complete")
+                return
+
+            now = datetime.now()
+            item.status = LogisticsStatus.COMPLETED
+            item.completed_at = now
+            item.updated_at = now
+            db.commit()
+
+            mapping = db.query(WaybillMap).filter(
+                WaybillMap.tracking_number == item.tracking_number
+            ).first()
+            waybill_id = mapping.waybill_id if mapping else None
+
+            logger.info(
+                f"Auto-completed waybill: {item.tracking_number} "
+                f"(ID={waybill_id}, dest={item.destination})"
+            )
+
+            if waybill_id:
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(
+                        ws_manager.broadcast({
+                            "type": "waybill_update",
+                            "data": {
+                                "waybill_id": waybill_id,
+                                "tracking_number": item.tracking_number,
+                                "status": "COMPLETED",
+                                "destination": item.destination
+                            }
+                        })
+                    )
+                    loop.close()
+                except Exception as ws_err:
+                    logger.debug(f"Could not broadcast auto-complete: {ws_err}")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logger.error(f"Error in auto-complete: {e}")
+
+
 def handle_rc_state(message: dict):
     """Handle RC state data from Raspberry Pi.
     
@@ -562,8 +695,11 @@ def handle_rc_state(message: dict):
     Payload: JSON data containing RC state information
     
     Saves received data to backend/logs/rc_state_latest.json (single file, overwritten).
-    This prevents storage from filling up with files created every 0.5 seconds.
+    Detects state transitions:
+      - → DELIVERING:    oldest READY  → MOVING    (배송 시작)
+      - → READY_TO_LOAD: oldest MOVING → COMPLETED (배송 완료)
     """
+    global _prev_rc_state
     logger.debug(f"RC state data received from topic: {message.get('topic')}")
     
     try:
@@ -573,6 +709,20 @@ def handle_rc_state(message: dict):
             return
         
         logger.debug(f"RC state received: {data}")
+        
+        # Detect state transitions
+        current_state = data.get("state")
+        if current_state != _prev_rc_state:
+            # DELIVERING → auto-start: READY → MOVING
+            if current_state == RC_STATE_DELIVERING and _prev_rc_state != RC_STATE_DELIVERING:
+                logger.info(f"State transition: {_prev_rc_state} → {RC_STATE_DELIVERING}")
+                _auto_start_oldest_ready()
+            
+            # READY_TO_LOAD → auto-complete: MOVING → COMPLETED
+            elif current_state == RC_STATE_READY_TO_LOAD and _prev_rc_state != RC_STATE_READY_TO_LOAD:
+                logger.info(f"State transition: {_prev_rc_state} → {RC_STATE_READY_TO_LOAD}")
+                _auto_complete_oldest_moving()
+        _prev_rc_state = current_state
         
         # 데이터 저장 로직
         import os

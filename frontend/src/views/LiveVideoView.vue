@@ -1,5 +1,10 @@
 <template>
   <div class="live-view">
+    <!-- Map Editor Panel (Dev Only) -->
+    <MapEditorPanel v-if="isDevMode" :visible="isDevMode" @update:colors="onColorsChange"
+      @update:mapConfig="onMapConfigChange" @update:vehicleConfig="onVehicleConfigChange" @add:label="onAddLabel"
+      @remove:label="onRemoveLabel" @update:labels="onLabelsUpdate" @reset="onEditorReset" ref="editorRef" />
+
     <!-- Main Map Area (Left/Center) -->
     <div class="map-layer">
       <div class="map-container-3d" ref="mapContainer3D"></div>
@@ -177,6 +182,8 @@ import { startWaybillScan, startSorting, completeSorting, fetchWaybills, fetchVe
 import { useTheme } from '../composables/useTheme'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
+import MapEditorPanel from '../components/MapEditorPanel.vue'
 
 // Theme
 const { theme, isDark } = useTheme()
@@ -224,6 +231,14 @@ const streamUrl = ref('/stream/cam1/')
 // 3D Map
 const mapContainer3D = ref(null)
 let scene, camera, renderer, controls, vehicleMesh, mapMesh, floorMesh, worldGroup, pathMesh
+let css2dRenderer = null
+const labelObjects = ref([])  // CSS2DObject 배열
+const editorRef = ref(null)
+
+// Editor-driven reactive configs
+const editorColors = ref(null)
+const editorMapConfig = ref(null)
+const editorVehicleConfig = ref(null)
 let animationFrameId = null
 
 const vehicle = ref({ x: 0, y: 0, angle: 0 })
@@ -232,6 +247,7 @@ const vehicleStatus = ref({ mode: 'IDLE', speed: 0, battery: 100, distanceToTarg
 const isVehicleConnected = ref(false)
 const isVideoVisible = ref(true)
 const debugOffset = ref({ x: 0, y: 0 })  // 디버그용 수동 오프셋
+const lastValidAngle = ref(0) // 마지막으로 유효한 회전각 (노이즈 필터링용)
 let timeInterval = null
 
 // Sidebar Resize State
@@ -265,10 +281,16 @@ const loadVehiclePosition = async () => {
     if (res.data?.success && res.data?.data) {
       const data = res.data.data
       // RC 좌표는 미터 단위 - 3D 맵에서 그대로 사용
+      // 1도 이하 변화 무시 로직
+      const rawTheta = data.theta || 0
+      if (Math.abs(rawTheta - lastValidAngle.value) > 1.0) {
+        lastValidAngle.value = rawTheta
+      }
+
       vehicle.value = {
         x: data.x || 0,
         y: data.y || 0,
-        angle: data.theta || 0  // theta를 angle로 매핑
+        angle: lastValidAngle.value  // 필터링된 각도 사용
       }
       vehicleStatus.value = {
         mode: data.state || 'IDLE',
@@ -346,6 +368,15 @@ const init3DMap = () => {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
   container.appendChild(renderer.domElement)
 
+  // CSS2D Renderer for text labels
+  css2dRenderer = new CSS2DRenderer()
+  css2dRenderer.setSize(width, height)
+  css2dRenderer.domElement.style.position = 'absolute'
+  css2dRenderer.domElement.style.top = '0'
+  css2dRenderer.domElement.style.left = '0'
+  css2dRenderer.domElement.style.pointerEvents = 'none'
+  container.appendChild(css2dRenderer.domElement)
+
   controls = new OrbitControls(camera, renderer.domElement)
   controls.enableRotate = false // Disable rotation for strict 2D view
   controls.enableZoom = true
@@ -357,6 +388,7 @@ const init3DMap = () => {
   addLights()
   createSlamMap()
   createVehicle()
+  restoreEditorLabels()
   animate()
   window.addEventListener('resize', handleResize)
 }
@@ -504,12 +536,15 @@ const createVehicle = () => {
 const animate = () => {
   animationFrameId = requestAnimationFrame(animate)
   controls?.update()
+
+  // Apply editor-driven vehicle config overrides
+  const vc = editorVehicleConfig.value || VEHICLE_CONFIG
   if (vehicleMesh) {
     // 차량 항상 표시 (연결 상태와 무관하게 위치 확인용)
     vehicleMesh.visible = true
 
-    // VEHICLE_CONFIG 사용 + 디버그 오프셋 적용
-    const { offsetX, offsetY, rotation, moveScale } = VEHICLE_CONFIG
+    // VEHICLE_CONFIG 사용 + 디버그 오프셋 적용 (에디터 오버라이드 적용)
+    const { offsetX, offsetY, rotation, moveScale } = vc
 
     // IDLE/READY_TO_LOAD 상태일 때는 기본 보정값 위치에 고정
     const isIdle = vehicleStatus.value.mode === 'IDLE' || vehicleStatus.value.mode === 'READY_TO_LOAD'
@@ -528,8 +563,9 @@ const animate = () => {
     }
 
     vehicleMesh.position.set(mapX, 0.5, mapZ)
-    // RC theta 무시, VEHICLE_CONFIG.rotation만 사용
-    vehicleMesh.rotation.y = Math.PI + (rotation * Math.PI / 180)
+    vehicleMesh.position.set(mapX, 0.5, mapZ)
+    // VEHICLE_CONFIG.rotation + Telemetry Angle (filtered)
+    vehicleMesh.rotation.y = Math.PI + ((rotation + vehicle.value.angle) * Math.PI / 180)
 
     // 연결 상태에 따라 색상 변경
     const bodyMesh = vehicleMesh.children[0]
@@ -572,6 +608,7 @@ const animate = () => {
     }
   }
   renderer?.render(scene, camera)
+  css2dRenderer?.render(scene, camera)
 }
 
 const handleResize = () => {
@@ -589,6 +626,7 @@ const handleResize = () => {
 
   camera.updateProjectionMatrix()
   renderer.setSize(w, h)
+  css2dRenderer?.setSize(w, h)
 }
 
 const zoomIn3D = () => {
@@ -661,6 +699,115 @@ const stopResize = () => {
   nextTick(() => handleResize())
 }
 
+// ========== Map Editor Event Handlers ==========
+const onColorsChange = (colors) => {
+  editorColors.value = colors
+  if (scene) {
+    scene.background = new THREE.Color(colors.background)
+  }
+  if (floorMesh) {
+    floorMesh.material.color.set(colors.floor)
+  }
+  if (mapMesh) {
+    mapMesh.material.color.set(colors.wall)
+  }
+  if (vehicleMesh) {
+    const bodyMesh = vehicleMesh.children[0]
+    if (bodyMesh && bodyMesh.material) {
+      bodyMesh.material.color.set(colors.vehicle)
+    }
+  }
+}
+
+const onMapConfigChange = (config) => {
+  editorMapConfig.value = config
+  // Map config changes require rebuild
+  MAP_CONFIG.resolution = config.resolution
+  MAP_CONFIG.origin[0] = config.originX
+  MAP_CONFIG.origin[1] = config.originY
+  MAP_CONFIG.wallHeight = config.wallHeight
+  rebuildMap()
+}
+
+const onVehicleConfigChange = (config) => {
+  editorVehicleConfig.value = config
+  // Vehicle config is read in animate() loop, no rebuild needed
+}
+
+const onAddLabel = (label) => {
+  addLabelToScene(label)
+}
+
+const onRemoveLabel = (idx) => {
+  if (labelObjects.value[idx]) {
+    worldGroup.remove(labelObjects.value[idx])
+    labelObjects.value.splice(idx, 1)
+  }
+}
+
+const onLabelsUpdate = (labels) => {
+  // Remove all existing labels
+  labelObjects.value.forEach(obj => worldGroup.remove(obj))
+  labelObjects.value = []
+  // Re-add all
+  labels.forEach(label => addLabelToScene(label))
+}
+
+const onEditorReset = () => {
+  // Remove all labels
+  labelObjects.value.forEach(obj => worldGroup.remove(obj))
+  labelObjects.value = []
+  editorColors.value = null
+  editorMapConfig.value = null
+  editorVehicleConfig.value = null
+  // Rebuild with defaults
+  rebuildMap()
+}
+
+const addLabelToScene = (label) => {
+  if (!worldGroup) return
+  const div = document.createElement('div')
+  div.textContent = label.text
+  div.style.color = label.color || '#ffffff'
+  div.style.fontSize = (label.fontSize || 16) + 'px'
+  div.style.fontWeight = '700'
+  div.style.textShadow = '0 0 6px rgba(0,0,0,0.8), 0 0 12px rgba(0,0,0,0.5)'
+  div.style.pointerEvents = 'none'
+  div.style.whiteSpace = 'nowrap'
+  div.style.userSelect = 'none'
+
+  const labelObj = new CSS2DObject(div)
+  // Position in world coords (x = label.x, z = -label.y, y slightly above floor)
+  labelObj.position.set(label.x, 1.0, -label.y)
+  worldGroup.add(labelObj)
+  labelObjects.value.push(labelObj)
+}
+
+const restoreEditorLabels = () => {
+  if (!editorRef.value) return
+  const labels = editorRef.value.labels
+  if (labels && labels.length > 0) {
+    labels.forEach(label => addLabelToScene(label))
+  }
+}
+
+const rebuildMap = () => {
+  // Remove old map and floor
+  if (mapMesh) {
+    worldGroup.remove(mapMesh)
+    mapMesh.geometry.dispose()
+    mapMesh.material.dispose()
+    mapMesh = null
+  }
+  if (floorMesh) {
+    worldGroup.remove(floorMesh)
+    floorMesh.geometry.dispose()
+    floorMesh.material.dispose()
+    floorMesh = null
+  }
+  createSlamMap()
+}
+
 onMounted(async () => {
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
@@ -680,6 +827,9 @@ onUnmounted(() => {
   window.removeEventListener('mousemove', onDrag)
   window.removeEventListener('mouseup', stopDrag)
   if (renderer) renderer.dispose()
+  if (css2dRenderer) {
+    css2dRenderer.domElement.remove()
+  }
 })
 
 watch(theme, () => {

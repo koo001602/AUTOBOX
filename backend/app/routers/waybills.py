@@ -29,6 +29,34 @@ from app.services.websocket import manager
 router = APIRouter(prefix="/waybills", tags=["운송장"])
 
 
+@router.get("/{tracking_number}/image")
+async def get_waybill_image(tracking_number: str, db: Session = Depends(get_db)):
+    """운송장의 OCR 원본 이미지(base64) 반환."""
+    import json, os
+
+    item = db.query(LogisticsItem).filter(
+        LogisticsItem.tracking_number == tracking_number
+    ).first()
+
+    if not item or not item.image_file:
+        raise HTTPException(status_code=404, detail="이미지를 찾을 수 없습니다.")
+
+    # Try data directory (Docker: /app/data, local: ./data)
+    file_path = os.path.join("./data", item.image_file)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="이미지 파일이 존재하지 않습니다.")
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        image_base64 = data.get("dest", "")
+        if not image_base64:
+            raise HTTPException(status_code=404, detail="이미지 데이터가 비어있습니다.")
+        return {"success": True, "data": {"image_base64": image_base64}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"이미지 로드 오류: {str(e)}")
+
+
 @router.delete("/reset", response_model=dict)
 async def reset_all_waybills(db: Session = Depends(get_db)):
     """모든 운송장 데이터 삭제 (물류 초기화).

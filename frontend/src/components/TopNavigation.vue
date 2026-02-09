@@ -18,38 +18,25 @@ const isMockMode = getMockMode()
       <span class="status-title">Autobox</span>
       <span v-if="isMockMode" class="mock-badge">MOCK</span>
     </div>
-    
-    <div class="status-bar-right">
-      <div class="status-group">
-        <div class="status-chip" :class="isConnected ? 'online' : 'offline'">
-          <span class="chip-dot"></span>
-          <span class="chip-text">{{ isConnected ? 'Online' : 'Error' }}</span>
-        </div>
-        
-        <div class="status-chip battery" :class="batteryLevel > 20 ? 'ok' : 'low'">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="16" height="10" rx="2" ry="2" />
-            <line x1="22" x2="22" y1="11" y2="13" />
-          </svg>
-          <span class="chip-text">{{ batteryLevel }}%</span>
-        </div>
-      </div>
 
+    <div class="status-bar-right">
 
       <button class="status-btn" @click="toggleTheme">
-        <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2"/>
-          <path d="M12 20v2"/>
-          <path d="m4.93 4.93 1.41 1.41"/>
-          <path d="m17.66 17.66 1.41 1.41"/>
-          <path d="M2 12h2"/>
-          <path d="M20 12h2"/>
-          <path d="m6.34 17.66-1.41 1.41"/>
-          <path d="m19.07 4.93-1.41 1.41"/>
+        <svg v-if="theme === 'dark'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
         </svg>
-        <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
         </svg>
       </button>
     </div>
@@ -58,7 +45,8 @@ const isMockMode = getMockMode()
   <nav class="bottom-tab-bar">
     <RouterLink to="/" class="tab-item" active-class="active">
       <div class="tab-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect width="7" height="9" x="3" y="3" rx="1" />
           <rect width="7" height="5" x="14" y="3" rx="1" />
           <rect width="7" height="9" x="14" y="12" rx="1" />
@@ -70,7 +58,8 @@ const isMockMode = getMockMode()
 
     <RouterLink to="/live" class="tab-item" active-class="active">
       <div class="tab-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m22 8-6 4 6 4V8Z" />
           <rect width="14" height="12" x="2" y="6" rx="2" ry="2" />
         </svg>
@@ -80,9 +69,11 @@ const isMockMode = getMockMode()
 
     <RouterLink to="/settings" class="tab-item" active-class="active">
       <div class="tab-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       </div>
       <span class="tab-label">설정</span>
@@ -98,12 +89,13 @@ const isMockMode = getMockMode()
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px; /* 기본 높이 */
+  height: 60px;
+  /* 기본 높이 */
   padding: 0 20px;
-  
+
   /* [핵심 수정] 상단 노치 영역 대응 */
-  padding-top: env(safe-area-inset-top); 
-  
+  padding-top: env(safe-area-inset-top);
+
   background: var(--glass-header);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -251,14 +243,15 @@ const isMockMode = getMockMode()
   display: flex;
   justify-content: space-around;
   align-items: center;
-  
+
   /* 탭바 기본 높이 */
   height: 70px;
-  
+
   /* [핵심 수정] 아이폰 하단 홈 바(Home Indicator) 영역 확보 */
   padding-bottom: env(safe-area-inset-bottom);
-  box-sizing: content-box; /* 패딩을 높이 계산에서 제외 */
-  
+  box-sizing: content-box;
+  /* 패딩을 높이 계산에서 제외 */
+
   background: var(--glass-header);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -359,25 +352,25 @@ const isMockMode = getMockMode()
     padding: 0 10px;
     padding-top: env(safe-area-inset-top);
   }
-  
+
   .status-title {
-    font-size: 16px; 
+    font-size: 16px;
   }
-  
+
   /* 공간 확보를 위해 텍스트 숨김 */
   .status-chip .chip-text {
     display: none;
   }
-  
+
   .status-chip {
     padding: 6px;
   }
-  
+
   .status-group {
     gap: 4px;
     padding: 3px;
   }
-  
+
   .tab-label {
     font-size: 10px;
   }
@@ -388,16 +381,20 @@ const isMockMode = getMockMode()
   .mock-badge {
     display: none;
   }
+
   .status-group {
     display: none;
   }
+
   .status-bar-right {
     gap: 4px;
   }
+
   .status-btn {
     width: 32px;
     height: 32px;
   }
+
   .status-title {
     font-size: 15px;
   }

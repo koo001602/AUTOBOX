@@ -40,11 +40,11 @@ REGION_MAP = {
 
 # MQTT Signal Mapping
 REGION_SIGNAL_MAP = {
-    '서울': 'B',
+    '서울': 'E',
     '대구': 'F',
     '대전': 'D',
     '광주': 'C',
-    '부산': 'E'
+    '부산': 'B'
 }
 DEFAULT_SIGNAL = 'A'
 
@@ -61,8 +61,27 @@ def parse_region_code(region_code: Optional[str]) -> str:
         if region_name.upper().startswith(key.upper()):
             return value
     
-    # 매핑에 없으면 원본 지역명 반환 (숫자 제거된 것)
-    return region_name if region_name else '-'
+    # 매핑에 없으면 None 반환 (유효하지 않은 지역)
+    return None
+
+
+# 알려진 지역 키워드 목록
+KNOWN_REGIONS = ['서울', '부산', '광주', '대전', '대구']
+
+def _extract_region_from_all_values(values: list) -> Optional[str]:
+    """모든 OCR 결과 값에서 알려진 지역명을 찾아 반환.
+    
+    VLM 모델이 값 순서를 바꾸거나 잘못 매핑해도
+    어떤 필드에서든 지역명이 발견되면 사용합니다.
+    """
+    for val in values:
+        if not val:
+            continue
+        text = str(val)
+        for region in KNOWN_REGIONS:
+            if region in text:
+                return region
+    return None
 
 
 
@@ -280,9 +299,18 @@ class OCRService:
                             if len(values) >= 1:
                                 result.tracking_number = str(values[0]) if values[0] else None
                             if len(values) >= 2:
-                                # Parsing region code (e.g., '서울2' -> '서울')
+                                # 1차: 위치 기반 파싱 (values[1])
                                 raw_region = str(values[1]) if values[1] else None
-                                result.region_code = parse_region_code(raw_region)
+                                parsed = parse_region_code(raw_region)
+                                
+                                if parsed:
+                                    result.region_code = parsed
+                                else:
+                                    # 2차: 모든 값에서 지역명 검색 (VLM 순서 오류 대비)
+                                    fallback = _extract_region_from_all_values(values)
+                                    result.region_code = fallback if fallback else '-'
+                                    if fallback:
+                                        logger.info(f"Region found via fallback scan: {fallback} (original value[1]: {raw_region})")
                             if len(values) >= 3:
                                 result.recipient_name = str(values[2]) if values[2] else None
                             if len(values) >= 4:
@@ -295,10 +323,15 @@ class OCRService:
                             logger.info(f"OCR completed for {file_name}: tracking={result.tracking_number}, region={result.region_code}")
                             
                             # Save to Database
-                            db_id = self._save_to_database(result)
+                            db_id = self._save_to_database(result, source_file=file_name)
                             if db_id:
                                 result.result_id = str(db_id)  # Use simpler DB ID
                                 logger.info(f"Saved to DB with ID: {db_id}")
+                                
+                                # 1분 후 자동 완료 타이머 시작
+                                self._schedule_auto_complete(
+                                    result.tracking_number, db_id, delay_seconds=60
+                                )
 
                             # Auto-dispatch MQTT signal if region code is available
                             try:
@@ -344,7 +377,7 @@ class OCRService:
         
         return result
     
-    def _save_to_database(self, result: OCRResult) -> Optional[int]:
+    def _save_to_database(self, result: OCRResult, source_file: str = None) -> Optional[int]:
         """Save OCR result to database and return the new waybill_id."""
         if not result.tracking_number:
             return None
@@ -359,9 +392,10 @@ class OCRService:
                 item = LogisticsItem(
                     tracking_number=result.tracking_number,
                     destination=result.region_code,
+                    image_file=source_file,
                     status=LogisticsStatus.READY,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
                 )
                 db.add(item)
                 db.flush()  # To satisfy foreign key constraints
@@ -386,6 +420,58 @@ class OCRService:
             db.close()
             
         return None
+    
+    def _schedule_auto_complete(self, tracking_number: str, waybill_id: int, delay_seconds: int = 60):
+        """1분 후 자동으로 COMPLETED 처리하는 백그라운드 타이머."""
+        import threading
+        
+        def _auto_complete():
+            import time
+            time.sleep(delay_seconds)
+            
+            db = SessionLocal()
+            try:
+                item = db.query(LogisticsItem).filter(
+                    LogisticsItem.tracking_number == tracking_number
+                ).first()
+                
+                if item and item.status != LogisticsStatus.COMPLETED:
+                    now = datetime.now()
+                    item.status = LogisticsStatus.COMPLETED
+                    item.completed_at = now
+                    item.updated_at = now
+                    db.commit()
+                    
+                    logger.info(f"Auto-completed after {delay_seconds}s: {tracking_number}")
+                    
+                    # WebSocket broadcast
+                    try:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        loop.run_until_complete(
+                            ws_manager.broadcast({
+                                "type": "waybill_update",
+                                "data": {
+                                    "waybill_id": waybill_id,
+                                    "tracking_number": tracking_number,
+                                    "status": "completed",
+                                    "destination": item.destination
+                                }
+                            })
+                        )
+                        loop.close()
+                    except Exception as e:
+                        logger.debug(f"Could not broadcast auto-complete: {e}")
+                else:
+                    logger.debug(f"Skip auto-complete for {tracking_number}: already completed or not found")
+            except Exception as e:
+                logger.error(f"Auto-complete error for {tracking_number}: {e}")
+            finally:
+                db.close()
+        
+        t = threading.Thread(target=_auto_complete, daemon=True)
+        t.start()
+        logger.info(f"Scheduled auto-complete for {tracking_number} in {delay_seconds}s")
     
     def _call_ocr_api_sync(self, image_base64: str) -> Optional[Dict]:
         """Call OCR API synchronously."""

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { FILTER_OPTIONS } from '../../constants'
+import { fetchWaybillImage } from '../../api'
 
 const props = defineProps({
   data: {
@@ -19,6 +20,34 @@ const filterStatus = defineModel('filterStatus', { default: '전체' })
 // 정렬 상태 관리
 const sortKey = ref('createdAt')
 const sortOrder = ref('desc') // 'asc' or 'desc'
+
+// 이미지 모달 상태
+const showImageModal = ref(false)
+const selectedImage = ref('')
+const selectedItem = ref(null)
+const imageLoading = ref(false)
+
+const openImage = async (item) => {
+  selectedItem.value = item
+  imageLoading.value = true
+  showImageModal.value = true
+  selectedImage.value = ''
+  try {
+    const res = await fetchWaybillImage(item.id)
+    const base64 = res.data?.data?.image_base64 || ''
+    selectedImage.value = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`
+  } catch (e) {
+    selectedImage.value = ''
+  } finally {
+    imageLoading.value = false
+  }
+}
+
+const closeImageModal = () => {
+  showImageModal.value = false
+  selectedImage.value = ''
+  selectedItem.value = null
+}
 
 // 정렬 함수
 const sortBy = (key) => {
@@ -111,7 +140,7 @@ const sortedData = computed(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in sortedData" :key="item.id" class="table-row">
+            <tr v-for="item in sortedData" :key="item.id" class="table-row clickable-row" @click="openImage(item)">
               <td class="cell-id">{{ item.waybillId }}</td>
               <td class="cell-waybill">{{ item.id }}</td>
               <td class="cell-region">
@@ -160,6 +189,30 @@ const sortedData = computed(() => {
         </table>
       </div>
     </div>
+
+    <!-- 이미지 모달 -->
+    <Teleport to="body">
+      <div v-if="showImageModal" class="image-modal-overlay" @click.self="closeImageModal">
+        <div class="image-modal">
+          <div class="image-modal-header">
+            <span class="image-modal-title">
+              📦 #{{ selectedItem?.waybillId }} — {{ selectedItem?.id }}
+            </span>
+            <button class="image-modal-close" @click="closeImageModal">✕</button>
+          </div>
+          <div class="image-modal-body">
+            <div v-if="imageLoading" class="image-loading">
+              <div class="spinner"></div>
+              <p>이미지 로딩 중...</p>
+            </div>
+            <img v-else-if="selectedImage" :src="selectedImage" alt="OCR 원본 이미지" class="ocr-image" />
+            <div v-else class="image-empty">
+              <p>이미지를 찾을 수 없습니다</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>
 
@@ -613,6 +666,110 @@ const sortedData = computed(() => {
     min-height: auto !important;
     height: 100% !important;
     padding: 20px !important;
+  }
+}
+
+/* 클릭 가능한 행 */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clickable-row:hover {
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+/* 이미지 모달 */
+.image-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.image-modal {
+  background: var(--glass-panel, #1e293b);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  max-width: 640px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.image-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+.image-modal-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.image-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.image-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+}
+
+.image-modal-body {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  overflow: auto;
+}
+
+.ocr-image {
+  max-width: 100%;
+  max-height: 65vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.image-loading,
+.image-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

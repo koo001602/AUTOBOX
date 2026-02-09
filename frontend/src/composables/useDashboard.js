@@ -237,27 +237,20 @@ export function useDashboard() {
       ];
 
       // 운송장 목록 처리 (프론트엔드 날짜 필터링 강화)
+      // 백엔드에서 이미 날짜 필터링 완료 → 프론트엔드 이중 필터링 제거
       const waybillItems = waybillsRes.data.data?.items || [];
-      const waybillData = waybillItems
-        .filter((item) => {
-          if (!selectedDate.value) return true;
-          // created_at 또는 completed_at 중 하나라도 해당 날짜와 일치하면 표시하도록 할 수도 있지만,
-          // 보통 목록은 '해당 날짜에 발생한 건'을 의미하므로 created_at 기준 필터링
-          const itemDate = (item.created_at || "").split("T")[0];
-          return itemDate === selectedDate.value;
-        })
-        .map((item) => ({
-          id: item.tracking_number,
-          waybillId: item.waybill_id,
-          target: item.destination || "-",
-          status: STATUS_MAP[item.status] || item.status,
-          rawStatus: item.status,
-          dateTime: item.completed_at || item.created_at || "",
-          createdAt: item.created_at || "",
-          completedAt: item.completed_at || null,
-          processTime: item.process_time_sec || null,
-          confidenceScore: item.confidence_score || null,
-        }));
+      const waybillData = waybillItems.map((item) => ({
+        id: item.tracking_number,
+        waybillId: item.waybill_id,
+        target: item.destination || "-",
+        status: STATUS_MAP[item.status] || item.status,
+        rawStatus: item.status,
+        dateTime: item.completed_at || item.created_at || "",
+        createdAt: item.created_at || "",
+        completedAt: item.completed_at || null,
+        processTime: item.process_time_sec || null,
+        confidenceScore: item.confidence_score || null,
+      }));
 
       // OCR 결과 처리 및 병합 (날짜 필터링 + 중복 제거)
       const ocrItems = ocrRes.data?.data?.items || [];
@@ -418,6 +411,40 @@ export function useDashboard() {
   });
 
   /**
+   * 로컬 물류 데이터에서 차트 즉시 재계산 (WebSocket 이벤트 후 호출)
+   */
+  const updateChartFromLocal = () => {
+    let totalDone = 0;
+    let totalLeft = 0;
+    const finishedArr = [];
+    const pendingArr = [];
+
+    CITIES.forEach((city, index) => {
+      const cityItems = logisticsData.value.filter((item) => item.target === city);
+      const done = cityItems.filter((item) => item.rawStatus === "COMPLETED").length;
+      const left = cityItems.filter((item) => item.rawStatus !== "COMPLETED").length;
+
+      finishedArr.push({ x: city, y: done, fillColor: REGION_COLORS[index] });
+      pendingArr.push({ x: city, y: left, fillColor: "#f59e0b" });
+
+      totalDone += done;
+      totalLeft += left;
+    });
+
+    finishedArr.unshift({ x: "전체", y: totalDone, fillColor: CHART_COLORS.totalCompleted });
+    pendingArr.unshift({ x: "전체", y: totalLeft, fillColor: "#f59e0b" });
+
+    const allValues = [...finishedArr.map((d) => d.y), ...pendingArr.map((d) => d.y)];
+    const maxVal = Math.max(...allValues);
+    chartMax.value = maxVal > 0 ? maxVal : 5;
+
+    chartSeries.value = [
+      { name: "완료 건수", data: finishedArr },
+      { name: "남은 건수", data: pendingArr },
+    ];
+  };
+
+  /**
    * 폴링 시작
    */
   const startPolling = () => {
@@ -498,21 +525,32 @@ export function useDashboard() {
           if (message.type === "ocr_result") {
             // OCR 결과를 물류 테이블에 자동 추가
             addOcrResultToLogistics(message.payload);
+            updateChartFromLocal();
           } else if (message.type === "waybill_update") {
-            // 물류 상태 업데이트 (OCR 저장 후 발생)
+            // 물류 상태 업데이트
             const data = message.data;
-            // 중복 방지를 위해 이미 있는지 확인하고 없으면 추가, 있으면 업데이트?
-            // 여기서는 addOcrResultToLogistics 재사용하거나 비슷하게 처리
-            // 하지만 payload 구조가 다르므로 매핑 필요
-            const mappedPayload = {
-              tracking_number: data.tracking_number,
-              result_id: String(data.waybill_id),
-              region_code: data.destination,
-              status: "ready", // OCR 직후는 ready
-              processed_at: new Date().toISOString(),
-            };
-            // addOcrResultToLogistics 내부에서 중복 체크하므로 호출
-            addOcrResultToLogistics(mappedPayload);
+
+            if (data.status === "completed") {
+              // 완료 상태 업데이트: 기존 아이템을 찾아서 상태 변경
+              const existing = logisticsData.value.find((item) => item.id === data.tracking_number);
+              if (existing) {
+                existing.status = STATUS_MAP["COMPLETED"] || "완료";
+                existing.rawStatus = "COMPLETED";
+                existing.completedAt = new Date().toISOString();
+              }
+            } else {
+              // 새 아이템 추가 (OCR 인식 직후)
+              const mappedPayload = {
+                tracking_number: data.tracking_number,
+                result_id: String(data.waybill_id),
+                region_code: data.destination,
+                status: "ready",
+                processed_at: new Date().toISOString(),
+              };
+              addOcrResultToLogistics(mappedPayload);
+            }
+            // 로컬 데이터 기반 차트 즉시 갱신
+            updateChartFromLocal();
           }
         } catch (e) {
           console.debug("WebSocket message parse error:", e);

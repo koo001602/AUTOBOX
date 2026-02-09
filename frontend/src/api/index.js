@@ -84,6 +84,11 @@ export const fetchWaybillDetail = (waybillId) => {
   return apiClient.get(`/waybills/${waybillId}`);
 };
 
+// 5-1. 운송장 OCR 이미지 조회
+export const fetchWaybillImage = (trackingNumber) => {
+  return apiClient.get(`/waybills/${trackingNumber}/image`);
+};
+
 // 6. 알림 목록 조회
 export const fetchAlerts = (params = {}) => {
   if (isMockMode) {

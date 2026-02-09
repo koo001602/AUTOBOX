@@ -22,19 +22,20 @@ class LogisticsItem(Base):
     
     tracking_number = Column(String(50), primary_key=True, comment="운송장 번호")
     destination = Column(String(20), nullable=True, comment="목표 지역")
+    image_file = Column(String(200), nullable=True, comment="OCR 원본 이미지 JSON 파일명")
     status = Column(
         Enum(LogisticsStatus),
         nullable=False,
         default=LogisticsStatus.READY,
         comment="상태"
     )
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, comment="생성 시간")
+    created_at = Column(DateTime, nullable=False, default=datetime.now, comment="생성 시간")
     completed_at = Column(DateTime, nullable=True, comment="완료 시간")
     updated_at = Column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=datetime.now,
+        onupdate=datetime.now,
         comment="최종 수정 시간"
     )
     
@@ -64,7 +65,7 @@ class ScanLog(Base):
     camera_id = Column(String(20), nullable=False, comment="촬영한 카메라 ID")
     detected_destination = Column(String(20), nullable=True, comment="AI가 인식한 지역명")
     confidence_score = Column(Float, nullable=True, comment="AI 신뢰도(0~100)")
-    scanned_at = Column(DateTime, nullable=False, default=datetime.utcnow, comment="스캔 시간")
+    scanned_at = Column(DateTime, nullable=False, default=datetime.now, comment="스캔 시간")
     
     # Relationships
     logistics_item = relationship("LogisticsItem", back_populates="scan_logs")

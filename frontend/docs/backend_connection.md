@@ -447,3 +447,8 @@ docker-compose ps
 - [ ] `DATABASE_URL` - MySQL 연결 문자열
 - [ ] `CORS_ORIGINS` - 허용할 Origin 목록
 - [ ] `MQTT_*` - MQTT 브로커 설정
+
+
+```
+docker build -t backend-frontend . && docker stop autobox-frontend && docker rm autobox-frontend && docker run -d --name autobox-frontend --network autobox-network -p 8081:80 backend-frontend
+```

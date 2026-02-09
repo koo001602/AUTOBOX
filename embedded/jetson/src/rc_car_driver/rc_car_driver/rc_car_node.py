@@ -3,6 +3,7 @@ import rclpy
 import math
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Float64
 
 # --- HW imports (DC motor HAT / Servo) ---
 import busio
@@ -11,26 +12,32 @@ from adafruit_pca9685 import PCA9685
 from adafruit_servokit import ServoKit 
 
 class PWMThrottleHat:
-    def __init__(self, pwm, channel):
+    def __init__(self, pwm):
         self.pwm = pwm
-        self.channel = channel
         self.pwm.frequency = 60  # 주파수 설정
 
-    def set_throttle(self, throttle):
+    def set_throttle(self, channel, throttle):
         pulse = int(0xFFFF * abs(throttle))  # 16비트 듀티 사이클 계산
-       
+        if channel == 0:  # MA1, MA2 포트용
+            self.pwm_pin = 5
+            self.in1_pin = 4
+            self.in2_pin = 3
+        else:               # MB1, MB2 포트용
+            self.pwm_pin = 0
+            self.in1_pin = 1
+            self.in2_pin = 2
         if throttle < 0:      # 전진
-            self.pwm.channels[self.channel + 5].duty_cycle = pulse
-            self.pwm.channels[self.channel + 4].duty_cycle = 0
-            self.pwm.channels[self.channel + 3].duty_cycle = 0xFFFF
+            self.pwm.channels[self.pwm_pin].duty_cycle = pulse
+            self.pwm.channels[self.in1_pin].duty_cycle = 0
+            self.pwm.channels[self.in2_pin].duty_cycle = 0xFFFF
         elif throttle > 0:    # 후진
-            self.pwm.channels[self.channel + 5].duty_cycle = pulse
-            self.pwm.channels[self.channel + 4].duty_cycle = 0xFFFF
-            self.pwm.channels[self.channel + 3].duty_cycle = 0
+            self.pwm.channels[self.pwm_pin].duty_cycle = pulse
+            self.pwm.channels[self.in1_pin].duty_cycle = 0xFFFF
+            self.pwm.channels[self.in2_pin].duty_cycle = 0
         else:                 # 정지
-            self.pwm.channels[self.channel + 5].duty_cycle = 0
-            self.pwm.channels[self.channel + 4].duty_cycle = 0
-            self.pwm.channels[self.channel + 3].duty_cycle = 0
+            self.pwm.channels[self.pwm_pin].duty_cycle = 0
+            self.pwm.channels[self.in1_pin].duty_cycle = 0
+            self.pwm.channels[self.in2_pin].duty_cycle = 0
 
 
 class RCCarNode(Node):
@@ -39,7 +46,8 @@ class RCCarNode(Node):
         super().__init__('rc_car_node')
 
         # ---- Parameters ----
-        self.declare_parameter('cmd_vel_topic', '/cmd_vel')
+        self.declare_parameter('cmd_vel_act', '/cmd_vel_act')
+        self.declare_parameter('cmd_vel_topic', '/cmd_vel_final')
         self.declare_parameter('control_rate', 20.0)   # Hz
         self.declare_parameter('cmd_timeout', 0.2)     # sec
 
@@ -56,7 +64,8 @@ class RCCarNode(Node):
         self.declare_parameter('servo_channel', 0)        # kit.servo[0] :contentReference[oaicite:7]{index=7}
         self.declare_parameter('steer_center_deg', 100.0) # pan=100 :contentReference[oaicite:8]{index=8}
         self.declare_parameter('wheelbase_m',0.1375)
-
+        
+        self.cmd_vel_act = self.get_parameter('cmd_vel_act').value
         self.cmd_vel_topic = self.get_parameter('cmd_vel_topic').value
         self.control_rate = float(self.get_parameter('control_rate').value)
         self.cmd_timeout = float(self.get_parameter('cmd_timeout').value)
@@ -81,7 +90,10 @@ class RCCarNode(Node):
         self._sub_cmd = self.create_subscription(
             Twist, self.cmd_vel_topic, self._on_cmd_vel, 10
         )
-
+        self._sub_act = self.create_subscription(
+            Float64, self.cmd_vel_act, self._on_act_vel, 10
+        )
+        
         self._pub_applied = None
         if self.publish_applied_cmd:
             self._pub_applied = self.create_publisher(Twist, self.applied_cmd_topic, 10)
@@ -107,7 +119,7 @@ class RCCarNode(Node):
 
         self._motor_pca = PCA9685(self._i2c)
         self._motor_pca.frequency = 60
-        self.motor_hat = PWMThrottleHat(self._motor_pca, channel=self.motor_channel)
+        self.motor_hat = PWMThrottleHat(self._motor_pca)
 
 
         self.servo_kit = ServoKit(channels=16, i2c=self._i2c, address=self.servo_pca_address)
@@ -122,7 +134,7 @@ class RCCarNode(Node):
     def _deinit_hardware(self):
 
         try:
-            self.motor_hat.set_throttle(0.0)
+            self.motor_hat.set_throttle(0, 0.0)
         except Exception:
             pass
         try:
@@ -141,6 +153,9 @@ class RCCarNode(Node):
         self._v_cmd = float(msg.linear.x)
         self._w_cmd = float(msg.angular.z)
         self._last_cmd_time = self.get_clock().now()
+    
+    def _on_act_vel(self, msg: Float64):
+        self.motor_hat.set_throttle(1, msg.data)
 
     def _control_loop(self):
 
@@ -169,21 +184,40 @@ class RCCarNode(Node):
             self._pub_applied.publish(out)
 
     # -----------------------------
+    @staticmethod
+    def speed_to_pwm(target_speed_mps):
+        if abs(target_speed_mps) < 0.01:
+            return 0.0
 
+        pwm = (1.1734 * abs(target_speed_mps)) + 0.1385
+
+        MIN_PWM = 0.15 
+        MAX_PWM = 1.0
+
+        pwm = max(MIN_PWM, min(MAX_PWM, pwm))
+    
+        if target_speed_mps < 0:
+            return -pwm
+        else:
+            return pwm
     # -----------------------------
     def apply_control(self, v: float, w: float):
-        if abs(self._v_cmd) < 0.02:
+        if abs(v) < 0.02:
             throttle = 0.0
-            steer_delta = 0
+            steer_delta = 0.0
             servo_deg = self.steer_center_deg
         else:
-            throttle = self._v_cmd * 2
-            steer_delta = math.atan(self.wheelbase_m * self._w_cmd / self._v_cmd)
+            throttle = self.speed_to_pwm(v)
+            # 선속도가 너무 작아 0으로 나누어지는 것 방지
+            if abs(v) < 0.01:
+                steer_delta = 0.0 
+            else:
+                steer_delta = -math.atan(self.wheelbase_m * w / v)
             steer_deg = steer_delta*(180/math.pi)
             servo_deg = (0.0012*steer_deg*steer_deg*steer_deg) - (0.0267*steer_deg*steer_deg) + 2.378*steer_deg + 100
             servo_deg = max(50, min(140,servo_deg))
         # --- output apply 
-        self.motor_hat.set_throttle(throttle)                 # :contentReference[oaicite:10]{index=10}
+        self.motor_hat.set_throttle(0, throttle)                 # :contentReference[oaicite:10]{index=10}
         self.servo_kit.servo[self.servo_channel].angle = servo_deg  # :contentReference[oaicite:11]{index=11}
 
         msg = Float64()

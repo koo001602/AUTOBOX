@@ -57,6 +57,85 @@ DEFAULT_SENSORS = [
 ]
 
 
+# ============== RC State API (Read from logs) ==============
+
+@router.get("/vehicle/rc-state")
+async def get_rc_state():
+    """
+    RC-001: RC 상태 조회 (로그 파일에서 읽기).
+    
+    MQTT를 통해 수신된 최신 RC 상태를 로그 파일에서 읽어 반환합니다.
+    0.5초마다 업데이트되는 rc_state_latest.json 파일에서 데이터를 읽습니다.
+    """
+    import os
+    import json
+    
+    log_file = "./logs/rc_state_latest.json"
+    
+    # 파일이 없으면 기본값 반환
+    if not os.path.exists(log_file):
+        return {
+            "success": True,
+            "connected": False,
+            "data": {
+                "device_id": "rc1",
+                "speed": 0,
+                "state": "IDLE",
+                "x": 0.0,
+                "y": 0.0,
+                "theta": 0.0,
+                "path": "",
+                "remain_dist": 0.0,
+                "remain_time": 0
+            },
+            "message": "로그 파일이 아직 생성되지 않았습니다."
+        }
+    
+    try:
+        with open(log_file, "r", encoding="utf-8") as f:
+            log_data = json.load(f)
+        
+        # saved_at 타임스탬프 확인하여 연결 상태 판단 (5초 이내면 Connected)
+        saved_at = log_data.get("saved_at", "")
+        is_connected = False
+        
+        if saved_at:
+            from datetime import datetime, timedelta
+            try:
+                saved_time = datetime.fromisoformat(saved_at)
+                is_connected = (datetime.now() - saved_time) < timedelta(seconds=5)
+            except:
+                pass
+        
+        rc_data = log_data.get("data", {})
+        
+        return {
+            "success": True,
+            "connected": is_connected,
+            "data": {
+                "device_id": rc_data.get("device_id", "rc1"),
+                "speed": abs(rc_data.get("speed", 0)),  # 절대값으로 변환
+                "state": rc_data.get("state", "IDLE"),
+                "x": rc_data.get("x", 0.0),
+                "y": rc_data.get("y", 0.0),
+                "theta": rc_data.get("theta", 0.0),
+                "path": rc_data.get("path", ""),
+                "remain_dist": rc_data.get("remain_dist", 0.0),
+                "remain_time": rc_data.get("remain_time", 0)
+            },
+            "saved_at": saved_at,
+            "received_at": log_data.get("received_at", "")
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "connected": False,
+            "data": None,
+            "message": f"로그 파일 읽기 오류: {str(e)}"
+        }
+
+
 # ============== Vehicle Position API ==============
 
 @router.get("/vehicle/position", response_model=VehiclePositionResponse)

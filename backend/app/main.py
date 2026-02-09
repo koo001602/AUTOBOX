@@ -16,10 +16,12 @@ from app.routers import (
     recognition_router,
     cameras_router,
     vehicle_router,
+    ocr_router,
 )
 from app.routers.websocket import router as websocket_router
 from app.routers.frontend_compat import router as frontend_compat_router
 from app.services.mqtt import mqtt_service, register_default_handlers
+from app.services.ocr_service import ocr_service
 
 settings = get_settings()
 
@@ -36,7 +38,15 @@ async def lifespan(app: FastAPI):
         register_default_handlers()
         mqtt_service.connect()
     
+    # Startup: Start OCR file watcher service
+    if settings.OCR_ENABLED:
+        ocr_service.start()
+    
     yield
+    
+    # Shutdown: Stop OCR file watcher
+    if settings.OCR_ENABLED:
+        ocr_service.stop()
     
     # Shutdown: Disconnect from MQTT broker
     if settings.MQTT_ENABLED:
@@ -100,6 +110,7 @@ app.include_router(stats_router, prefix=API_PREFIX)
 app.include_router(recognition_router, prefix=API_PREFIX)
 app.include_router(cameras_router, prefix=API_PREFIX)
 app.include_router(vehicle_router, prefix=API_PREFIX)
+app.include_router(ocr_router, prefix=API_PREFIX)
 
 # WebSocket router (no API prefix)
 app.include_router(websocket_router)

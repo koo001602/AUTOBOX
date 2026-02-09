@@ -29,6 +29,29 @@ from app.services.websocket import manager
 router = APIRouter(prefix="/waybills", tags=["운송장"])
 
 
+@router.delete("/reset", response_model=dict)
+async def reset_all_waybills(db: Session = Depends(get_db)):
+    """모든 운송장 데이터 삭제 (물류 초기화).
+    
+    LogisticsItem 삭제 시 CASCADE로 ScanLog, WaybillMap도 함께 삭제됩니다.
+    """
+    deleted_count = db.query(LogisticsItem).count()
+    db.query(LogisticsItem).delete()
+    db.commit()
+    
+    # Broadcast via WebSocket
+    await manager.broadcast({
+        "type": "waybill_reset",
+        "data": {"deleted_count": deleted_count}
+    })
+    
+    return {
+        "success": True,
+        "message": f"{deleted_count}개의 운송장 데이터가 삭제되었습니다.",
+        "deleted_count": deleted_count
+    }
+
+
 def generate_tracking_number() -> str:
     """Generate a unique tracking number."""
     now = datetime.now()
@@ -296,8 +319,10 @@ async def list_waybills(
     # Apply filters
     if date:
         try:
-            filter_date = datetime.strptime(date, "%Y-%m-%d").date()
-            query = query.filter(func.date(LogisticsItem.created_at) == filter_date)
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            start_dt = datetime.combine(target_date, datetime.min.time())
+            end_dt = datetime.combine(target_date, datetime.max.time())
+            query = query.filter(LogisticsItem.created_at >= start_dt, LogisticsItem.created_at <= end_dt)
         except ValueError:
             raise HTTPException(status_code=400, detail={
                 "code": "INVALID_DATE",

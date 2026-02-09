@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # CORS
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000, http://43.201.254.235"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000, http://43.201.254.235 , https://autoboxx.duckdns.org"
     
     # MQTT Configuration
     MQTT_BROKER_HOST: str = "localhost"
@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     
     # Raspberry Pi REST API
     RASPBERRY_PI_URL: str = "http://localhost:5000"
+    
+    # OCR Configuration
+    OCR_ENABLED: bool = True
+    OCR_API_URL: str = "https://2ed2-211-192-210-22.ngrok-free.app/predict/base64"
+    OCR_WATCH_DIR: str = "./data"
     
     @property
     def cors_origins_list(self) -> list[str]:

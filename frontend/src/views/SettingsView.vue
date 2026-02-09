@@ -1,10 +1,60 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useTheme } from '../composables'
-import { getMockMode } from '../api'
+import { getMockMode, resetAllWaybills, fetchOcrStatus } from '../api'
+import { OcrResultsPanel } from '../components/dashboard'
 
 const { theme, toggleTheme } = useTheme()
 const isMockMode = getMockMode()
+
+// 물류 초기화 관련 상태
+const isResetting = ref(false)
+const resetResult = ref(null)
+
+// 물류 데이터 초기화
+const handleResetLogistics = async () => {
+  if (!confirm('⚠️ 경고: 모든 운송장 데이터가 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?')) {
+    return
+  }
+  
+  isResetting.value = true
+  resetResult.value = null
+  
+  try {
+    const response = await resetAllWaybills()
+    const data = response.data
+    
+    if (data.success) {
+      resetResult.value = { success: true, message: data.message || `${data.deleted_count}개의 데이터가 삭제되었습니다.` }
+      alert(`✅ ${data.message || `${data.deleted_count}개의 운송장 데이터가 삭제되었습니다.`}`)
+    } else {
+      throw new Error('삭제 실패')
+    }
+  } catch (e) {
+    console.error('물류 초기화 실패:', e)
+    resetResult.value = { success: false, message: e.message }
+    alert(`❌ 초기화 실패: ${e.message}`)
+  } finally {
+    isResetting.value = false
+  }
+}
+
+// OCR 서비스 상태
+const ocrStatus = ref(null)
+const isLoadingOcrStatus = ref(false)
+
+const loadOcrStatus = async () => {
+  isLoadingOcrStatus.value = true
+  try {
+    const response = await fetchOcrStatus()
+    ocrStatus.value = response.data?.data || null
+  } catch (e) {
+    console.error('OCR 상태 조회 실패:', e)
+    ocrStatus.value = null
+  } finally {
+    isLoadingOcrStatus.value = false
+  }
+}
 
 
 // 백엔드 설정 (Docker 환경: 현재 호스트 사용, 로컬 개발: localhost)
@@ -130,6 +180,7 @@ const testRaspberryPiConnection = async () => {
 
 onMounted(() => {
   loadSettings()
+  loadOcrStatus()
 })
 </script>
 
@@ -383,6 +434,110 @@ onMounted(() => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- 데이터 관리 -->
+      <section class="settings-section">
+        <h2 class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <line x1="10" x2="10" y1="11" y2="17"/>
+            <line x1="14" x2="14" y1="11" y2="17"/>
+          </svg>
+          데이터 관리
+        </h2>
+        <div class="settings-card">
+          <div class="setting-item danger-item">
+            <div class="setting-info">
+              <div class="setting-icon danger">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+              </div>
+              <div class="setting-text">
+                <span class="setting-label">물류 데이터 초기화</span>
+                <span class="setting-value">모든 운송장, 스캔 로그, 매핑 데이터를 삭제합니다</span>
+              </div>
+            </div>
+            <div class="setting-action">
+              <button 
+                class="reset-btn" 
+                :class="{ resetting: isResetting }"
+                @click="handleResetLogistics"
+                :disabled="isResetting"
+              >
+                <svg v-if="isResetting" class="spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                </svg>
+                {{ isResetting ? '삭제 중...' : '초기화' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OCR 디버깅 (개발자용) -->
+      <section class="settings-section full-width">
+        <h2 class="section-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          OCR 디버깅 (개발자용)
+        </h2>
+        <div class="settings-card">
+          <div class="setting-item readonly">
+            <div class="setting-info">
+              <div class="setting-icon" :class="ocrStatus?.enabled ? 'success' : ''">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path v-if="ocrStatus?.enabled" d="m9 12 2 2 4-4"/>
+                  <path v-else d="M15 9l-6 6M9 9l6 6"/>
+                </svg>
+              </div>
+              <div class="setting-text">
+                <span class="setting-label">OCR 서비스 상태</span>
+                <span class="setting-value" :class="ocrStatus?.enabled ? 'live' : 'mock'">
+                  {{ ocrStatus?.enabled ? '🟢 활성화됨' : '⚫ 비활성화됨' }}
+                </span>
+              </div>
+            </div>
+            <button class="test-btn" @click="loadOcrStatus" :disabled="isLoadingOcrStatus">
+              <svg v-if="isLoadingOcrStatus" class="spinner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              <span v-else>새로고침</span>
+            </button>
+          </div>
+
+          <div class="setting-input-item" v-if="ocrStatus">
+            <label class="input-label">감시 디렉토리</label>
+            <div class="endpoint-preview">{{ ocrStatus.watch_directory }}</div>
+          </div>
+
+          <div class="setting-input-item" v-if="ocrStatus">
+            <label class="input-label">OCR API URL</label>
+            <div class="endpoint-preview">{{ ocrStatus.api_url }}</div>
+          </div>
+
+          <div class="setting-input-item" v-if="ocrStatus">
+            <label class="input-label">처리된 결과 수</label>
+            <div class="endpoint-preview">{{ ocrStatus.results_count }}건</div>
+          </div>
+        </div>
+
+        <!-- OCR 결과 패널 -->
+        <div class="ocr-debug-panel">
+          <OcrResultsPanel :wsEnabled="true" />
         </div>
       </section>
     </div>
@@ -700,5 +855,65 @@ onMounted(() => {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* Danger/Reset Button Styles */
+.setting-icon.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error, #ef4444);
+}
+
+.danger-item {
+  border-left: 3px solid var(--color-error, #ef4444);
+}
+
+.reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error, #ef4444);
+  border-radius: 8px;
+  color: var(--color-error, #ef4444);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover:not(:disabled) {
+  background: var(--color-error, #ef4444);
+  color: white;
+}
+
+.reset-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reset-btn.resetting {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.reset-btn .spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Full Width Section */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Success Icon */
+.setting-icon.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success, #10b981);
+}
+
+/* OCR Debug Panel */
+.ocr-debug-panel {
+  margin-top: 16px;
 }
 </style>

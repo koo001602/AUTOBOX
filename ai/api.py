@@ -1,7 +1,6 @@
 # api.py - FastAPI 서버로 운송장 정보 추출
 
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Header
-from fastapi.security import APIKeyHeader
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -26,22 +25,8 @@ load_dotenv()
 # =====================
 ADAPTER_PATH = os.getenv("ADAPTER_PATH", "./model/qwen2_vl_finetuned_ver2")
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", "8000"))
+PORT = int(os.getenv("PORT", "8082"))
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",") if os.getenv("ALLOWED_ORIGINS") != "*" else ["*"]
-API_KEY = os.getenv("API_KEY", "your-secret-api-key-here")
-
-# =====================
-# API 키 인증
-# =====================
-api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-
-async def verify_api_key(api_key: str = Depends(api_key_header)):
-    """API 키 검증"""
-    if api_key is None:
-        raise HTTPException(status_code=401, detail="API 키가 필요합니다. 헤더에 X-API-Key를 포함해주세요.")
-    if api_key != API_KEY:
-        raise HTTPException(status_code=403, detail="유효하지 않은 API 키입니다.")
-    return api_key
 
 # =====================
 # FastAPI 앱 생성
@@ -237,7 +222,7 @@ async def root():
     }
 
 @app.post("/predict/path", response_model=PredictionResponse)
-async def predict_from_path(request: ImagePathRequest, api_key: str = Depends(verify_api_key)):
+async def predict_from_path(request: ImagePathRequest):
     """파일 경로로 이미지 추론"""
     
     if model is None or processor is None:
@@ -266,7 +251,7 @@ async def predict_from_path(request: ImagePathRequest, api_key: str = Depends(ve
         raise HTTPException(status_code=500, detail=f"추론 중 오류 발생: {str(e)}")
 
 @app.post("/predict/base64", response_model=PredictionResponse)
-async def predict_from_base64(request: ImageBase64Request, api_key: str = Depends(verify_api_key)):
+async def predict_from_base64(request: ImageBase64Request):
     """Base64 인코딩된 이미지로 추론"""
     
     if model is None or processor is None:
@@ -290,7 +275,7 @@ async def predict_from_base64(request: ImageBase64Request, api_key: str = Depend
         raise HTTPException(status_code=500, detail=f"추론 중 오류 발생: {str(e)}")
 
 @app.post("/predict/upload", response_model=PredictionResponse)
-async def predict_from_upload(file: UploadFile = File(...), api_key: str = Depends(verify_api_key)):
+async def predict_from_upload(file: UploadFile = File(...)):
     """업로드된 이미지 파일로 추론"""
     
     if model is None or processor is None:

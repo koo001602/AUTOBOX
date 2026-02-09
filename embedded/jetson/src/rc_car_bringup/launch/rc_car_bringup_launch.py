@@ -12,7 +12,7 @@ def generate_launch_description():
     # [추가 1] 앱 모드 스위치 (기본값 True)
     # 실행 시 'ros2 launch ... app:=False'라고 하면 미션 매니저는 끄고 로봇만 켭니다.
     app_arg = DeclareLaunchArgument(
-        'app', default_value='False',
+        'app', default_value='True',
         description='Run Mission Manager & MQTT Bridge'
     )
     
@@ -28,7 +28,7 @@ def generate_launch_description():
             os.path.join(
                 get_package_share_directory('ydlidar_ros2_driver'),
                 'launch',
-                'ydlidar_launch_view.py'   # 실전에서는 view 제거
+                'ydlidar_launch.py'   # 실전에서는 view 제거
             )
         )
     )
@@ -44,7 +44,19 @@ def generate_launch_description():
         )
     )
 
-
+    virtual_cleaner_node = Node(
+        package='rc_car_driver',
+        executable='virtual_cleaner',
+        name='virtual_cleaner',
+        output='screen',
+    )
+    
+    pose_publisher_node = Node(
+        package='mqtt_bridge_pkg',
+        executable='pose_publisher',
+        name='pose_publisher',
+        output='screen',
+    )
 
     # --- Ackermann Wheel Odometry ---
     ackermann_odom = Node(
@@ -135,11 +147,11 @@ def generate_launch_description():
             )
         ),
         launch_arguments={
-            'slam': 'True',
+            'slam': 'False',
             'use_sim_time': 'False',
             'autostart': 'True',
             'use_composition': 'False',
-            'map': '/home/jetson/maps/dummy.yaml',
+            'map': '/home/jetson/ros2_ws/map/realMap1.yaml',
             'params_file': '/opt/ros/humble/share/nav2_bringup/params/nav2_params.yaml',
         }.items()
     )
@@ -244,11 +256,37 @@ def generate_launch_description():
         # remappings는 필요 없습니다. 
         # (코드 내부에서 이미 /cmd_vel_parking 으로 발행하도록 설정했기 때문)
     )
+    path_publisher_node = Node(
+        package='mqtt_bridge_pkg',
+        executable='path_publisher',
+        name='path_publisher',
+        output='screen',
+    )
+
+    clamp = Node(
+        package='odom_rf2o_clamp',
+        executable='odom_rf2o_clamp',
+        name='odom_rf2o_clamp',
+        output='screen',
+        parameters=[{
+            'in_topic': '/odom_rf2o_ori',
+            'out_topic': '/odom_rf2o',
+            'eps_lin': 0.015,
+            'eps_ang': 0.03,
+            'hold_ms': 500,
+            'clamp_twist': True,
+            'freeze_pose': False,
+            'publish_tf': False,
+            'odom_frame': 'odom',
+            'base_frame': 'base_link',
+        }]
+    )
 
     return LaunchDescription([
-        #app_arg,            # [추가] 아규먼트 등록
+        app_arg,            # [추가] 아규먼트 등록
         ydlidar_launch,
         rf2o_launch,
+        virtual_cleaner_node,
         #ackermann_odom,
         #mpu_6050,
         #madgwick,
@@ -259,9 +297,12 @@ def generate_launch_description():
         #pca_drive_node,
         #keyboard_latch_node,
         nav2,
+        #clamp,
         # [추가] 앱 계층 실행
-        #mqtt_bridge_launch,
-        #mission_manager_node
+        mqtt_bridge_launch,
+        mission_manager_node,
         twist_mux_node,    # 추가된 Twist Mux
         parking_node,
+        pose_publisher_node,
+        path_publisher_node
     ])

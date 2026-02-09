@@ -3,7 +3,7 @@ stages:
   - deploy
 
 .docker-build-template:
-  stage: build  # 이 부분을 추가하여 기본값인 'test' 대신 'build' 스테이지를 사용하게 합니다.
+  stage: build
   image: docker:24.0.5
   services:
     - docker:24.0.5-dind
@@ -30,7 +30,9 @@ build-frontend:
     TARGET_DIR: "frontend"
   rules:
     - changes:
-        - frontend/**/* build-raspberry:
+        - frontend/**/*
+
+build-raspberry:
   extends: .docker-build-template
   variables:
     TARGET_DIR: "embedded/raspberry"
